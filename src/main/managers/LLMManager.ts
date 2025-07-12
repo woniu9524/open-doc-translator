@@ -95,7 +95,7 @@ export class LLMManager {
         },
         {
           role: 'user',
-          content: `请翻译以下Markdown文档：\n\n${content}`
+          content: content
         }
       ]
 
@@ -132,45 +132,93 @@ export class LLMManager {
       const notebook = JSON.parse(content)
       const translatedNotebook = { ...notebook }
 
-      // 遍历所有cells
+      // 收集所有需要翻译的markdown cells
+      const markdownCells: Array<{
+        index: number
+        content: string
+        isArray: boolean
+      }> = []
+
       for (let i = 0; i < translatedNotebook.cells.length; i++) {
         const cell = translatedNotebook.cells[i]
         
-        // 只翻译markdown类型的cell
+        // 只处理markdown类型的cell
         if (cell.cell_type === 'markdown' && cell.source && cell.source.length > 0) {
-          const cellContent = Array.isArray(cell.source) 
+          const isArray = Array.isArray(cell.source)
+          const cellContent = isArray 
             ? cell.source.join('') 
             : cell.source
 
-          // 如果内容不为空且包含非空白字符，则进行翻译
+          // 如果内容不为空且包含非空白字符，则加入翻译队列
           if (cellContent.trim()) {
-            const messages = [
-              {
-                role: 'system',
-                content: `${prompt}\n\n特别注意：这是Jupyter Notebook中的Markdown单元格内容，请保持原有的格式和结构。`
-              },
-              {
-                role: 'user',
-                content: `请翻译以下Markdown内容：\n\n${cellContent}`
-              }
-            ]
-
-            const response = await this.client.post('/chat/completions', {
-              model: this.settings.model,
-              messages,
-              temperature: this.settings.temperature,
-              max_tokens: Math.min(2000, cellContent.length * 2)
+            markdownCells.push({
+              index: i,
+              content: cellContent,
+              isArray
             })
-
-            const translatedContent = response.data.choices[0]?.message?.content || cellContent
-            
-            // 更新cell内容，保持原有的格式（数组或字符串）
-            if (Array.isArray(cell.source)) {
-              translatedNotebook.cells[i].source = translatedContent.split('\n').map(line => line + '\n')
-            } else {
-              translatedNotebook.cells[i].source = translatedContent
-            }
           }
+        }
+      }
+
+      // 如果没有需要翻译的内容，直接返回原文件
+      if (markdownCells.length === 0) {
+        return {
+          filePath,
+          translatedContent: JSON.stringify(translatedNotebook, null, 2),
+          success: true
+        }
+      }
+
+      // 批量翻译所有markdown cells
+      const translationPromises = markdownCells.map(async (cellData) => {
+        const messages = [
+          {
+            role: 'system',
+            content: prompt
+          },
+          {
+            role: 'user',
+            content: cellData.content
+          }
+        ]
+
+        try {
+          const response = await this.client.post('/chat/completions', {
+            model: this.settings.model,
+            messages,
+            temperature: this.settings.temperature,
+            max_tokens: Math.min(2000, cellData.content.length * 2)
+          })
+
+          const translatedContent = response.data.choices[0]?.message?.content || cellData.content
+          
+          return {
+            index: cellData.index,
+            translatedContent,
+            isArray: cellData.isArray,
+            success: true
+          }
+        } catch (error) {
+          console.error(`翻译第${cellData.index}个cell失败:`, error)
+          return {
+            index: cellData.index,
+            translatedContent: cellData.content, // 翻译失败时保持原内容
+            isArray: cellData.isArray,
+            success: false
+          }
+        }
+      })
+
+      // 等待所有翻译完成
+      const translationResults = await Promise.all(translationPromises)
+
+      // 更新notebook中的翻译结果
+      for (const result of translationResults) {
+        if (result.isArray) {
+          // 将翻译结果重新分割为数组格式，保持原有的换行格式
+          translatedNotebook.cells[result.index].source = [result.translatedContent]
+        } else {
+          translatedNotebook.cells[result.index].source = result.translatedContent
         }
       }
 
@@ -194,6 +242,7 @@ export class LLMManager {
   ): Promise<TranslationResult[]> {
     const results: TranslationResult[] = []
     const concurrency = this.settings.concurrency
+    let completedCount = 0
     
     // 分批处理任务
     for (let i = 0; i < tasks.length; i += concurrency) {
@@ -201,23 +250,51 @@ export class LLMManager {
       
       // 并发处理当前批次
       const batchPromises = batch.map(async (task) => {
-        const result = await this.translateFile(
-          task.filePath,
-          task.content,
-          prompt,
-          task.sourceHash
-        )
-        
-        // 更新进度
-        if (onProgress) {
-          onProgress({
-            completed: results.length + 1,
-            total: tasks.length,
-            current: task.filePath
-          })
+        try {
+          // 更新进度 - 开始处理当前文件
+          if (onProgress) {
+            onProgress({
+              completed: completedCount,
+              total: tasks.length,
+              current: task.filePath
+            })
+          }
+
+          const result = await this.translateFile(
+            task.filePath,
+            task.content,
+            prompt,
+            task.sourceHash
+          )
+          
+          // 更新进度 - 完成当前文件
+          completedCount++
+          if (onProgress) {
+            onProgress({
+              completed: completedCount,
+              total: tasks.length,
+              current: task.filePath
+            })
+          }
+          
+          return result
+        } catch (error) {
+          completedCount++
+          if (onProgress) {
+            onProgress({
+              completed: completedCount,
+              total: tasks.length,
+              current: task.filePath
+            })
+          }
+          
+          return {
+            filePath: task.filePath,
+            translatedContent: '',
+            success: false,
+            error: error instanceof Error ? error.message : '翻译失败'
+          }
         }
-        
-        return result
       })
       
       const batchResults = await Promise.all(batchPromises)

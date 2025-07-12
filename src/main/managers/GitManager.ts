@@ -284,11 +284,20 @@ export class GitManager {
   }
 
   /**
+   * 将分支名称转换为安全的文件名
+   */
+  private getSafeBranchName(branch: string): string {
+    return branch.replace(/[\/\\:*?"<>|]/g, '_')
+  }
+
+  /**
    * 读取翻译状态文件
    */
   async readTranslationState(branch: string): Promise<TranslationState> {
     try {
-      const stateFilePath = path.join(this.projectPath, `${branch}-translation_state.json`)
+      // 将分支名称中的斜杠替换为下划线，确保文件名安全
+      const safeBranchName = this.getSafeBranchName(branch)
+      const stateFilePath = path.join(this.projectPath, `${safeBranchName}-translation_state.json`)
       const content = await fs.readFile(stateFilePath, 'utf-8')
       return JSON.parse(content)
     } catch {
@@ -302,7 +311,9 @@ export class GitManager {
    */
   async writeTranslationState(branch: string, state: TranslationState): Promise<void> {
     try {
-      const stateFilePath = path.join(this.projectPath, `${branch}-translation_state.json`)
+      // 将分支名称中的斜杠替换为下划线，确保文件名安全
+      const safeBranchName = this.getSafeBranchName(branch)
+      const stateFilePath = path.join(this.projectPath, `${safeBranchName}-translation_state.json`)
       await fs.writeFile(stateFilePath, JSON.stringify(state, null, 2), 'utf-8')
     } catch (error) {
       throw new Error(`写入翻译状态文件失败: ${error}`)
