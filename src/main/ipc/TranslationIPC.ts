@@ -119,6 +119,10 @@ export class TranslationIPC {
       return await this.translationService.getGitStatus()
     })
 
+    ipcMain.handle('translation:stageAllFiles', async () => {
+      return await this.translationService.stageAllFiles()
+    })
+
     ipcMain.handle('translation:commitChanges', async (_, message: string) => {
       return await this.translationService.commitChanges(message)
     })
@@ -209,6 +213,10 @@ export class TranslationIPC {
 
     this.translationService.on('translation-file-saved', (filePath) => {
       this.sendToRenderer('translation:translation-file-saved', filePath)
+    })
+
+    this.translationService.on('files-staged', () => {
+      this.sendToRenderer('translation:files-staged')
     })
 
     this.translationService.on('changes-committed', (message) => {

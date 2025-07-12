@@ -35,7 +35,8 @@ declare global {
         batchTranslateFiles: (filePaths: string[], prompt?: string) => Promise<any>
         
         // Git操作
-        getGitStatus: () => Promise<any>
+        getGitStatus: () => Promise<import('./types').GitStatus>
+        stageAllFiles: () => Promise<void>
         commitChanges: (message: string) => Promise<void>
         pushChanges: () => Promise<void>
         

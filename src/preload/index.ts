@@ -37,6 +37,7 @@ const api = {
     
     // Git操作
     getGitStatus: () => ipcRenderer.invoke('translation:getGitStatus'),
+    stageAllFiles: () => ipcRenderer.invoke('translation:stageAllFiles'),
     commitChanges: (message: string) => ipcRenderer.invoke('translation:commitChanges', message),
     pushChanges: () => ipcRenderer.invoke('translation:pushChanges'),
     

@@ -505,6 +505,25 @@ export class TranslationService extends EventEmitter {
   }
 
   /**
+   * 暂存所有更改
+   */
+  async stageAllFiles(): Promise<void> {
+    if (!this.currentProjectId) {
+      throw new Error('未选择项目')
+    }
+    
+    try {
+      const gitManager = this.gitManagers.get(this.currentProjectId)!
+      await gitManager.stageAll()
+      
+      this.emit('files-staged')
+    } catch (error) {
+      this.emit('error', error)
+      throw error
+    }
+  }
+
+  /**
    * 推送更改
    */
   async pushChanges(): Promise<void> {
