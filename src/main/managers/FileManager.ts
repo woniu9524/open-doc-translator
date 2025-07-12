@@ -5,6 +5,13 @@ import { GitManager } from './GitManager'
 export class FileManager {
   private gitManager: GitManager
   private projectConfig: ProjectConfig
+  private cache: {
+    lastFetch: number
+    upstreamBranch: string
+    workingBranch: string
+    fileInfos: FileInfo[]
+  } | null = null
+  private readonly CACHE_DURATION = 30000 // 30秒缓存
 
   constructor(gitManager: GitManager, projectConfig: ProjectConfig) {
     this.gitManager = gitManager
@@ -12,7 +19,7 @@ export class FileManager {
   }
 
   /**
-   * 获取项目中所有符合条件的文件信息
+   * 获取项目中所有符合条件的文件信息（优化版本）
    */
   async getProjectFileInfos(
     upstreamBranch: string,
@@ -25,6 +32,16 @@ export class FileManager {
     }
   ): Promise<FileInfo[]> {
     try {
+      // 检查缓存
+      const now = Date.now()
+      if (this.cache && 
+          now - this.cache.lastFetch < this.CACHE_DURATION &&
+          this.cache.upstreamBranch === upstreamBranch &&
+          this.cache.workingBranch === workingBranch) {
+        console.log('使用缓存的文件信息')
+        return this.applyFilters(this.cache.fileInfos, filters)
+      }
+
       // 获取符合条件的文件列表
       const files = await this.gitManager.getProjectFiles(
         upstreamBranch,
@@ -33,20 +50,60 @@ export class FileManager {
         this.projectConfig.rules.special_files
       )
 
+      if (files.length === 0) {
+        this.cache = {
+          lastFetch: now,
+          upstreamBranch,
+          workingBranch,
+          fileInfos: []
+        }
+        return []
+      }
+
       // 读取翻译状态
       const translationState = await this.gitManager.readTranslationState(workingBranch)
 
-      // 获取每个文件的详细信息
+      // 批量获取文件信息（优化：一次 Git 操作获取所有文件的 hash 和大小）
+      const batchFileInfos = await this.gitManager.getBatchFileInfos(upstreamBranch, files)
+      
+      // 构建文件信息数组
       const fileInfos: FileInfo[] = []
       
       for (const filePath of files) {
         try {
-          const fileInfo = await this.getFileInfo(filePath, upstreamBranch, translationState)
-          fileInfos.push(fileInfo)
+          const batchInfo = batchFileInfos.get(filePath)
+          if (!batchInfo) {
+            console.warn(`无法获取文件信息: ${filePath}`)
+            continue
+          }
+
+          const { hash: sourceHash, size } = batchInfo
+          const recordedHash = translationState[filePath]?.source_hash
+          const status = this.determineFileStatus(sourceHash, recordedHash)
+          const lastModified = translationState[filePath]?.last_translated_at || ''
+          const extension = path.extname(filePath).slice(1).toLowerCase()
+
+          fileInfos.push({
+            path: filePath,
+            status,
+            size,
+            lastModified,
+            extension,
+            sourceHash,
+            recordedHash
+          })
         } catch (error) {
-          console.warn(`获取文件信息失败: ${filePath}`, error)
+          console.warn(`处理文件信息失败: ${filePath}`, error)
           // 继续处理其他文件
         }
+      }
+
+      // 更新缓存
+      this.cache = {
+        lastFetch: now,
+        upstreamBranch,
+        workingBranch,
+        fileInfos
       }
 
       // 应用过滤器
@@ -231,6 +288,13 @@ export class FileManager {
 
     sortNodes(tree)
     return tree
+  }
+
+  /**
+   * 清除缓存
+   */
+  clearCache(): void {
+    this.cache = null
   }
 
   /**

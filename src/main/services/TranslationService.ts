@@ -392,6 +392,9 @@ export class TranslationService extends EventEmitter {
         // 更新翻译状态
         await fileManager.updateTranslationState(this.currentWorkingBranch, filePath, sourceHash)
         
+        // 清除缓存，确保下次获取时数据是最新的
+        fileManager.clearCache()
+        
         this.emit('file-translated', { filePath, success: true })
       } else {
         this.emit('file-translated', { filePath, success: false, error: result.error })
@@ -469,6 +472,9 @@ export class TranslationService extends EventEmitter {
       if (updates.length > 0) {
         await fileManager.batchUpdateTranslationState(this.currentWorkingBranch, updates)
       }
+      
+      // 清除缓存，确保下次获取时数据是最新的
+      fileManager.clearCache()
       
       this.emit('batch-translation-completed', results)
       return results

@@ -204,6 +204,41 @@ export class GitManager {
   }
 
   /**
+   * 批量获取文件信息（优化版本）
+   */
+  async getBatchFileInfos(branch: string, filePaths: string[]): Promise<Map<string, { hash: string; size: number }>> {
+    try {
+      if (filePaths.length === 0) {
+        return new Map()
+      }
+
+      // 使用 git ls-tree 批量获取文件信息
+      const result = await this.git.raw(['ls-tree', '-r', '--long', branch])
+      const lines = result.trim().split('\n').filter(line => line.length > 0)
+      
+      const fileInfoMap = new Map<string, { hash: string; size: number }>()
+      
+      for (const line of lines) {
+        // git ls-tree 输出格式: 100644 blob a1b2c3d4e5f6... 1234 filename
+        const match = line.match(/^\d+\s+blob\s+([a-f0-9]+)\s+(\d+)\s+(.+)$/)
+        if (match) {
+          const [, hash, sizeStr, filePath] = match
+          const size = parseInt(sizeStr, 10)
+          
+          // 只返回请求的文件路径
+          if (filePaths.includes(filePath)) {
+            fileInfoMap.set(filePath, { hash, size })
+          }
+        }
+      }
+      
+      return fileInfoMap
+    } catch (error) {
+      throw new Error(`批量获取文件信息失败: ${error}`)
+    }
+  }
+
+  /**
    * 获取项目中符合条件的文件列表
    */
   async getProjectFiles(

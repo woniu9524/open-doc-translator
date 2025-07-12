@@ -1,4 +1,5 @@
-import { FC, useState, useMemo } from 'react'
+import { FC, useState, useMemo, useEffect, useCallback } from 'react'
+import { FileStatus } from '../../types'
 
 interface FileTreeProps {
   selectedFile: string
@@ -8,88 +9,175 @@ interface FileTreeProps {
 interface FileNode {
   name: string
   path: string
-  type: 'file' | 'directory'
-  status: 'untranslated' | 'outdated' | 'translated'
+  isFile: boolean
   children?: FileNode[]
-  size?: number
-  extension?: string
+  fileInfo?: {
+    status: FileStatus
+    size: number
+    extension: string
+    lastModified: string
+  }
+}
+
+// 批量翻译对话框组件
+interface BatchTranslationDialogProps {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: (selectedFiles: string[]) => void
+  files: FileNode[]
+}
+
+const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  files
+}) => {
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
+  const [selectAll, setSelectAll] = useState(false)
+
+  // 获取所有可翻译的文件（未翻译和已过时）
+  const translatableFiles = useMemo(() => {
+    const collect = (nodes: FileNode[]): FileNode[] => {
+      const result: FileNode[] = []
+      for (const node of nodes) {
+        if (node.isFile && node.fileInfo) {
+          if (node.fileInfo.status === FileStatus.UNTRANSLATED || 
+              node.fileInfo.status === FileStatus.OUTDATED) {
+            result.push(node)
+          }
+        }
+        if (node.children) {
+          result.push(...collect(node.children))
+        }
+      }
+      return result
+    }
+    return collect(files)
+  }, [files])
+
+  // 重置选择状态当对话框打开时
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedFiles(new Set())
+      setSelectAll(false)
+    }
+  }, [isOpen])
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedFiles(new Set())
+    } else {
+      setSelectedFiles(new Set(translatableFiles.map(f => f.path)))
+    }
+    setSelectAll(!selectAll)
+  }
+
+  const handleFileToggle = (filePath: string) => {
+    const newSelected = new Set(selectedFiles)
+    if (newSelected.has(filePath)) {
+      newSelected.delete(filePath)
+    } else {
+      newSelected.add(filePath)
+    }
+    setSelectedFiles(newSelected)
+    setSelectAll(newSelected.size === translatableFiles.length)
+  }
+
+  const handleConfirm = () => {
+    onConfirm(Array.from(selectedFiles))
+    onClose()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+        <h2 className="text-lg font-semibold mb-4">批量翻译</h2>
+        
+        <div className="flex items-center justify-between mb-4">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={selectAll}
+              onChange={handleSelectAll}
+              className="w-4 h-4"
+            />
+            <span className="text-sm">全选 ({translatableFiles.length} 个文件)</span>
+          </label>
+          <span className="text-sm text-gray-500">
+            已选择 {selectedFiles.size} 个文件
+          </span>
+        </div>
+
+        <div className="flex-1 overflow-auto border border-gray-200 rounded-lg">
+          {translatableFiles.map(file => (
+            <div
+              key={file.path}
+              className="flex items-center space-x-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+            >
+              <input
+                type="checkbox"
+                checked={selectedFiles.has(file.path)}
+                onChange={() => handleFileToggle(file.path)}
+                className="w-4 h-4"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-medium">{file.name}</div>
+                <div className="text-xs text-gray-500">{file.path}</div>
+              </div>
+              <div className="text-xs text-gray-400">
+                {file.fileInfo?.size ? `${Math.round(file.fileInfo.size / 1024)}kb` : ''}
+              </div>
+              <div className={`text-xs px-2 py-1 rounded-full ${
+                file.fileInfo?.status === FileStatus.UNTRANSLATED
+                  ? 'bg-gray-100 text-gray-600'
+                  : 'bg-orange-100 text-orange-600'
+              }`}>
+                {file.fileInfo?.status === FileStatus.UNTRANSLATED ? '未译' : '过时'}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-end space-x-3 mt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            取消
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={selectedFiles.size === 0}
+            className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            开始翻译 ({selectedFiles.size})
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
-  const [statusFilter, setStatusFilter] = useState<'all' | 'untranslated' | 'outdated' | 'translated'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'untranslated' | 'outdated' | 'up_to_date'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [minSize, setMinSize] = useState('')
   const [maxSize, setMaxSize] = useState('')
   const [selectedExtensions, setSelectedExtensions] = useState<Set<string>>(new Set())
-  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['docs']))
-
-  // Mock数据
-  const mockFileTree: FileNode[] = [
-    {
-      name: 'docs',
-      path: 'docs',
-      type: 'directory',
-      status: 'translated',
-      children: [
-        {
-          name: 'getting_started.md',
-          path: 'docs/getting_started.md',
-          type: 'file',
-          status: 'translated',
-          size: 15,
-          extension: 'md'
-        },
-        {
-          name: 'api_reference.md',
-          path: 'docs/api_reference.md',
-          type: 'file',
-          status: 'outdated',
-          size: 45,
-          extension: 'md'
-        },
-        {
-          name: 'config.json',
-          path: 'docs/config.json',
-          type: 'file',
-          status: 'untranslated',
-          size: 5,
-          extension: 'json'
-        },
-        {
-          name: 'core_docs',
-          path: 'docs/core_docs',
-          type: 'directory',
-          status: 'translated',
-          children: [
-            {
-              name: 'index.md',
-              path: 'docs/core_docs/index.md',
-              type: 'file',
-              status: 'untranslated',
-              size: 8,
-              extension: 'md'
-            },
-            {
-              name: 'advanced.md',
-              path: 'docs/core_docs/advanced.md',
-              type: 'file',
-              status: 'outdated',
-              size: 32,
-              extension: 'md'
-            },
-            {
-              name: 'guide.txt',
-              path: 'docs/core_docs/guide.txt',
-              type: 'file',
-              status: 'translated',
-              size: 12,
-              extension: 'txt'
-            }
-          ]
-        }
-      ]
-    }
-  ]
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
+  const [fileTree, setFileTree] = useState<FileNode[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false)
+  const [translating, setTranslating] = useState(false)
+  const [translationProgress, setTranslationProgress] = useState<{
+    completed: number
+    total: number
+    current: string
+  } | null>(null)
 
   // 从文件树中提取所有文件扩展名
   const availableExtensions = useMemo(() => {
@@ -97,8 +185,8 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
     
     const extractExtensions = (nodes: FileNode[]) => {
       nodes.forEach(node => {
-        if (node.type === 'file' && node.extension) {
-          extensions.add(node.extension)
+        if (node.isFile && node.fileInfo?.extension) {
+          extensions.add(node.fileInfo.extension)
         }
         if (node.children) {
           extractExtensions(node.children)
@@ -106,9 +194,207 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
       })
     }
     
-    extractExtensions(mockFileTree)
+    extractExtensions(fileTree)
     return Array.from(extensions).sort()
-  }, [mockFileTree])
+  }, [fileTree])
+
+  // 过滤后的文件树
+  const filteredFileTree = useMemo(() => {
+    if (!fileTree.length) return []
+
+    const filterNode = (node: FileNode): FileNode | null => {
+      if (node.isFile && node.fileInfo) {
+        // 状态过滤
+        if (statusFilter !== 'all' && node.fileInfo.status !== statusFilter) {
+          return null
+        }
+
+        // 搜索过滤
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase()
+          const fileName = node.name.toLowerCase()
+          const filePath = node.path.toLowerCase()
+          if (!fileName.includes(query) && !filePath.includes(query)) {
+            return null
+          }
+        }
+
+        // 扩展名过滤
+        if (selectedExtensions.size > 0 && !selectedExtensions.has(node.fileInfo.extension)) {
+          return null
+        }
+
+        // 大小过滤
+        const fileSizeKB = node.fileInfo.size / 1024
+        if (minSize && fileSizeKB < parseFloat(minSize)) {
+          return null
+        }
+        if (maxSize && fileSizeKB > parseFloat(maxSize)) {
+          return null
+        }
+
+        return node
+      }
+
+      if (node.children) {
+        const filteredChildren = node.children
+          .map(child => filterNode(child))
+          .filter(child => child !== null) as FileNode[]
+
+        if (filteredChildren.length > 0) {
+          return {
+            ...node,
+            children: filteredChildren
+          }
+        }
+      }
+
+      return null
+    }
+
+    return fileTree
+      .map(node => filterNode(node))
+      .filter(node => node !== null) as FileNode[]
+  }, [fileTree, statusFilter, searchQuery, selectedExtensions, minSize, maxSize])
+
+  // 加载文件树
+  const loadFileTree = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // 首先检查是否有当前项目
+      const currentProject = await window.api.translation.getCurrentProject()
+      if (!currentProject) {
+        // 没有项目时，清空文件树并显示提示
+        setFileTree([])
+        setError('请先选择一个项目')
+        return
+      }
+
+      // 不传递过滤参数，让后端返回完整的文件树
+      const treeData = await window.api.translation.getFileTree()
+      setFileTree(treeData)
+      
+      // 默认展开第一级目录
+      if (treeData.length > 0) {
+        const firstLevelDirs = treeData
+          .filter(node => !node.isFile)
+          .map(node => node.path)
+        setExpandedDirs(new Set(firstLevelDirs))
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '加载文件树失败'
+      
+      // 如果是"未选择项目"错误，显示友好提示
+      if (errorMessage.includes('未选择项目') || errorMessage.includes('鏈€夋嫨椤圭洰')) {
+        setError('请先选择一个项目')
+        setFileTree([])
+      } else {
+        setError(errorMessage)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, []) // 移除依赖，因为我们不再传递过滤参数
+
+  // 强制刷新文件树（清除缓存）
+  const forceRefreshFileTree = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // 首先检查是否有当前项目
+      const currentProject = await window.api.translation.getCurrentProject()
+      if (!currentProject) {
+        setFileTree([])
+        setError('请先选择一个项目')
+        return
+      }
+
+      // 强制刷新：清除缓存并重新获取数据
+      console.log('强制刷新文件树，清除缓存...')
+      const treeData = await window.api.translation.getFileTree()
+      setFileTree(treeData)
+      
+      // 默认展开第一级目录
+      if (treeData.length > 0) {
+        const firstLevelDirs = treeData
+          .filter(node => !node.isFile)
+          .map(node => node.path)
+        setExpandedDirs(new Set(firstLevelDirs))
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '加载文件树失败'
+      
+      if (errorMessage.includes('未选择项目') || errorMessage.includes('鏈€夋嫨椤圭洰')) {
+        setError('请先选择一个项目')
+        setFileTree([])
+      } else {
+        setError(errorMessage)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // 初始加载和刷新
+  useEffect(() => {
+    loadFileTree()
+  }, [loadFileTree])
+
+  // 监听翻译进度事件
+  useEffect(() => {
+    const handleProgress = (progress: any) => {
+      setTranslationProgress(progress)
+    }
+
+    const handleCompleted = () => {
+      setTranslating(false)
+      setTranslationProgress(null)
+      loadFileTree() // 重新加载文件树
+    }
+
+    const handleFileTranslated = (data: any) => {
+      if (data.success) {
+        loadFileTree() // 单个文件翻译完成后刷新文件树
+      }
+    }
+
+    const handleError = (error: any) => {
+      setError(error.message || '翻译过程中发生错误')
+      setTranslating(false)
+      setTranslationProgress(null)
+    }
+
+    const handleProjectSelected = () => {
+      // 项目选择后刷新文件树
+      loadFileTree()
+    }
+
+    const handleUpstreamFetched = () => {
+      // 上游更新后刷新文件树
+      loadFileTree()
+    }
+
+    // 监听来自主进程的事件
+    window.api.translation.on('translation:batch-translation-progress', handleProgress)
+    window.api.translation.on('translation:batch-translation-completed', handleCompleted)
+    window.api.translation.on('translation:file-translated', handleFileTranslated)
+    window.api.translation.on('translation:error', handleError)
+    window.api.translation.on('translation:project-selected', handleProjectSelected)
+    window.api.translation.on('translation:upstream-fetched', handleUpstreamFetched)
+
+    return () => {
+      // 清理事件监听器
+      window.api.translation.off('translation:batch-translation-progress', handleProgress)
+      window.api.translation.off('translation:batch-translation-completed', handleCompleted)
+      window.api.translation.off('translation:file-translated', handleFileTranslated)
+      window.api.translation.off('translation:error', handleError)
+      window.api.translation.off('translation:project-selected', handleProjectSelected)
+      window.api.translation.off('translation:upstream-fetched', handleUpstreamFetched)
+    }
+  }, [loadFileTree])
 
   const handleExtensionToggle = (extension: string) => {
     const newSelected = new Set(selectedExtensions)
@@ -120,20 +406,20 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
     setSelectedExtensions(newSelected)
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: FileStatus) => {
     switch (status) {
-      case 'untranslated': return 'text-gray-400'
-      case 'outdated': return 'text-orange-500'
-      case 'translated': return 'text-green-500'
+      case FileStatus.UNTRANSLATED: return 'text-gray-400'
+      case FileStatus.OUTDATED: return 'text-orange-500'
+      case FileStatus.UP_TO_DATE: return 'text-green-500'
       default: return 'text-gray-400'
     }
   }
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: FileStatus) => {
     switch (status) {
-      case 'untranslated': return '○'
-      case 'outdated': return '◐'
-      case 'translated': return '●'
+      case FileStatus.UNTRANSLATED: return '○'
+      case FileStatus.OUTDATED: return '◐'
+      case FileStatus.UP_TO_DATE: return '●'
       default: return '○'
     }
   }
@@ -148,6 +434,21 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
     setExpandedDirs(newExpanded)
   }
 
+  const handleBatchTranslation = async (selectedFiles: string[]) => {
+    if (selectedFiles.length === 0) return
+
+    setTranslating(true)
+    setTranslationProgress({ completed: 0, total: selectedFiles.length, current: '' })
+
+    try {
+      await window.api.translation.batchTranslateFiles(selectedFiles)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '批量翻译失败')
+      setTranslating(false)
+      setTranslationProgress(null)
+    }
+  }
+
   const renderFileNode = (node: FileNode, depth: number = 0) => {
     const isExpanded = expandedDirs.has(node.path)
     const isSelected = selectedFile === node.path
@@ -160,27 +461,31 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
           }`}
           style={{ paddingLeft: `${depth * 20 + 12}px` }}
           onClick={() => {
-            if (node.type === 'directory') {
-              toggleDirectory(node.path)
-            } else {
+            if (node.isFile) {
               setSelectedFile(node.path)
+            } else {
+              toggleDirectory(node.path)
             }
           }}
         >
           <span className="mr-3 text-gray-500">
-            {node.type === 'directory' ? (isExpanded ? '📂' : '📁') : '📄'}
+            {node.isFile ? '📄' : (isExpanded ? '📂' : '📁')}
           </span>
-          <span className={`mr-3 text-sm ${getStatusColor(node.status)}`}>
-            {getStatusIcon(node.status)}
-          </span>
+          {node.fileInfo && (
+            <span className={`mr-3 text-sm ${getStatusColor(node.fileInfo.status)}`}>
+              {getStatusIcon(node.fileInfo.status)}
+            </span>
+          )}
           <span className={`text-sm flex-1 ${isSelected ? 'font-medium text-blue-700' : 'text-gray-700'}`}>
             {node.name}
           </span>
-          {node.type === 'file' && node.size && (
-            <span className="text-xs text-gray-400 ml-2">{node.size}kb</span>
+          {node.fileInfo?.size && (
+            <span className="text-xs text-gray-400 ml-2">
+              {Math.round(node.fileInfo.size / 1024)}kb
+            </span>
           )}
         </div>
-        {node.type === 'directory' && isExpanded && node.children && (
+        {!node.isFile && isExpanded && node.children && (
           <div>
             {node.children.map(child => renderFileNode(child, depth + 1))}
           </div>
@@ -195,13 +500,29 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
       <div className="p-4 border-b border-gray-100 space-y-4">
         {/* 搜索框 */}
         <div>
-          <input
-            type="text"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="搜索文件..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="搜索文件..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <div className="relative">
+              <button
+                onClick={loadFileTree}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  forceRefreshFileTree()
+                }}
+                disabled={loading}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="左键：普通刷新，右键：强制刷新（清除缓存）"
+              >
+                🔄
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* 状态筛选器 */}
@@ -212,7 +533,7 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
               { value: 'all', label: '全部', color: 'bg-gray-100 text-gray-700' },
               { value: 'untranslated', label: '未译', color: 'bg-gray-100 text-gray-600' },
               { value: 'outdated', label: '过时', color: 'bg-orange-100 text-orange-600' },
-              { value: 'translated', label: '已译', color: 'bg-green-100 text-green-600' }
+              { value: 'up_to_date', label: '已译', color: 'bg-green-100 text-green-600' }
             ].map(option => (
               <button
                 key={option.value}
@@ -229,23 +550,25 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
           </div>
         </div>
 
-        {/* 文件扩展名筛选 - 并排布局 */}
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-2">扩展名</label>
-          <div className="flex flex-wrap gap-2">
-            {availableExtensions.map(ext => (
-              <label key={ext} className="flex items-center space-x-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  checked={selectedExtensions.has(ext)}
-                  onChange={() => handleExtensionToggle(ext)}
-                />
-                <span className="text-xs text-gray-600">.{ext}</span>
-              </label>
-            ))}
+        {/* 文件扩展名筛选 */}
+        {availableExtensions.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-2">扩展名</label>
+            <div className="flex flex-wrap gap-2">
+              {availableExtensions.map(ext => (
+                <label key={ext} className="flex items-center space-x-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    checked={selectedExtensions.has(ext)}
+                    onChange={() => handleExtensionToggle(ext)}
+                  />
+                  <span className="text-xs text-gray-600">.{ext}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 文件大小筛选器 */}
         <div>
@@ -253,14 +576,14 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
           <div className="flex gap-2">
             <input
               type="number"
-              className="flex-1 px-2 py-1 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-20 px-2 py-1 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="最小"
               value={minSize}
               onChange={(e) => setMinSize(e.target.value)}
             />
             <input
               type="number"
-              className="flex-1 px-2 py-1 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-20 px-2 py-1 border border-gray-200 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="最大"
               value={maxSize}
               onChange={(e) => setMaxSize(e.target.value)}
@@ -269,15 +592,87 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
         </div>
 
         {/* 批量翻译按钮 */}
-        <button className="w-full bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-3 rounded-lg transition-colors font-medium">
-          批量翻译
+        <button
+          onClick={() => setBatchDialogOpen(true)}
+          disabled={loading || translating}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {translating ? '翻译中...' : '批量翻译'}
         </button>
+
+        {/* 翻译进度 */}
+        {translationProgress && (
+          <div className="text-xs text-gray-600">
+            <div className="flex justify-between mb-1">
+              <span>进度: {translationProgress.completed}/{translationProgress.total}</span>
+              <span>{Math.round((translationProgress.completed / translationProgress.total) * 100)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all"
+                style={{ width: `${(translationProgress.completed / translationProgress.total) * 100}%` }}
+              />
+            </div>
+            {translationProgress.current && (
+              <div className="mt-1 text-xs text-gray-500 truncate">
+                当前: {translationProgress.current}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 文件树 */}
       <div className="flex-1 overflow-auto">
-        {mockFileTree.map(node => renderFileNode(node))}
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-gray-500">加载中...</div>
+          </div>
+        )}
+        
+        {error && (
+          <div className={`p-4 text-sm rounded-lg m-4 ${
+            error.includes('请先选择项目') 
+              ? 'text-blue-600 bg-blue-50 border border-blue-200' 
+              : 'text-red-600 bg-red-50 border border-red-200'
+          }`}>
+            <div className="flex items-center">
+              <span className="mr-2">
+                {error.includes('请先选择项目') ? '💡' : '❌'}
+              </span>
+              <span>{error}</span>
+            </div>
+            {!error.includes('请先选择项目') && (
+              <button
+                onClick={loadFileTree}
+                className="ml-2 text-blue-600 hover:text-blue-800"
+              >
+                重试
+              </button>
+            )}
+          </div>
+        )}
+
+        {!loading && !error && filteredFileTree.length === 0 && (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-gray-500">没有找到匹配的文件</div>
+          </div>
+        )}
+
+        {!loading && !error && filteredFileTree.length > 0 && (
+          <div>
+            {filteredFileTree.map(node => renderFileNode(node))}
+          </div>
+        )}
       </div>
+
+      {/* 批量翻译对话框 */}
+      <BatchTranslationDialog
+        isOpen={batchDialogOpen}
+        onClose={() => setBatchDialogOpen(false)}
+        onConfirm={handleBatchTranslation}
+        files={fileTree}
+      />
     </div>
   )
 }

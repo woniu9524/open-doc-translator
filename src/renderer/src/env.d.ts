@@ -25,14 +25,14 @@ declare global {
         fetchUpstream: () => Promise<void>
         
         // 文件管理
-        getFileTree: (filters?: any) => Promise<any[]>
+        getFileTree: (filters?: any) => Promise<any>
         getFileStatusStats: () => Promise<any>
         getFileComparison: (filePath: string) => Promise<any>
         saveTranslationFile: (filePath: string, content: string) => Promise<void>
         
         // 翻译功能
         translateSingleFile: (filePath: string, prompt?: string) => Promise<any>
-        batchTranslateFiles: (filePaths: string[], prompt?: string) => Promise<any[]>
+        batchTranslateFiles: (filePaths: string[], prompt?: string) => Promise<any>
         
         // Git操作
         getGitStatus: () => Promise<any>
