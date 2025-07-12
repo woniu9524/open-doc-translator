@@ -143,6 +143,56 @@ const Workspace: FC<WorkspaceProps> = ({ selectedFile }) => {
     }
   }
 
+  // 骨架屏组件
+  const SkeletonLoader = () => (
+    <div className="flex-1 flex flex-col bg-white">
+      {/* 顶部信息栏骨架屏 */}
+      <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="h-4 bg-gray-200 rounded w-48 animate-pulse"></div>
+          <div className="h-6 bg-gray-200 rounded w-16 animate-pulse"></div>
+          <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="h-8 bg-gray-200 rounded w-20 animate-pulse"></div>
+          <div className="h-8 bg-gray-200 rounded w-16 animate-pulse"></div>
+        </div>
+      </div>
+
+      {/* 双栏骨架屏 */}
+      <div className="flex-1 flex min-h-0">
+        <div className="w-1/2 border-r border-gray-200 flex flex-col min-w-0">
+          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex-shrink-0">
+            <div className="h-4 bg-gray-300 rounded w-12 animate-pulse"></div>
+          </div>
+          <div className="flex-1 p-4 space-y-2">
+            {[...Array(12)].map((_, i) => (
+              <div 
+                key={i} 
+                className="h-4 bg-gray-200 rounded animate-pulse" 
+                style={{width: `${60 + Math.random() * 40}%`}}
+              ></div>
+            ))}
+          </div>
+        </div>
+        <div className="w-1/2 flex flex-col min-w-0">
+          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex-shrink-0">
+            <div className="h-4 bg-gray-300 rounded w-12 animate-pulse"></div>
+          </div>
+          <div className="flex-1 p-4 space-y-2">
+            {[...Array(10)].map((_, i) => (
+              <div 
+                key={i} 
+                className="h-4 bg-gray-200 rounded animate-pulse" 
+                style={{width: `${50 + Math.random() * 50}%`}}
+              ></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   // 如果没有选择文件，显示空状态
   if (!selectedFile) {
     return (
@@ -156,27 +206,19 @@ const Workspace: FC<WorkspaceProps> = ({ selectedFile }) => {
     )
   }
 
-  // 加载状态
+  // 加载状态 - 使用骨架屏
   if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <div className="text-center text-gray-500">
-          <div className="text-4xl mb-4">⏳</div>
-          <h3 className="text-lg font-medium mb-2">加载中...</h3>
-          <p className="text-sm">正在获取文件内容</p>
-        </div>
-      </div>
-    )
+    return <SkeletonLoader />
   }
 
   // 错误状态
   if (error) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
-        <div className="text-center text-red-500">
+        <div className="text-center text-red-500 max-w-md">
           <div className="text-4xl mb-4">❌</div>
           <h3 className="text-lg font-medium mb-2">加载失败</h3>
-          <p className="text-sm mb-4">{error}</p>
+          <p className="text-sm mb-4 text-gray-600">{error}</p>
           <button
             onClick={() => loadFileContent(selectedFile)}
             className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded transition-colors"
@@ -204,23 +246,23 @@ const Workspace: FC<WorkspaceProps> = ({ selectedFile }) => {
   const statusInfo = getStatusInfo(fileData.status!)
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="flex-1 flex flex-col bg-white min-h-0">
       {/* 顶部信息栏 */}
-      <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="text-sm font-medium text-gray-700">
+      <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center space-x-4 min-w-0 flex-1">
+          <div className="text-sm font-medium text-gray-700 truncate" title={selectedFile}>
             {selectedFile}
           </div>
-          <div className={`px-2 py-1 text-xs rounded ${statusInfo.color}`}>
+          <div className={`px-2 py-1 text-xs rounded flex-shrink-0 ${statusInfo.color}`}>
             {statusInfo.text}
           </div>
           {fileData.lastModified && (
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 flex-shrink-0 hidden sm:block">
               最后更新: {new Date(fileData.lastModified).toLocaleString()}
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-shrink-0">
           <button
             onClick={handleRetranslate}
             disabled={translating}
@@ -238,31 +280,38 @@ const Workspace: FC<WorkspaceProps> = ({ selectedFile }) => {
         </div>
       </div>
 
-      {/* 双栏对比视图 */}
-      <div className="flex-1 flex">
+      {/* 双栏对比视图 - 响应式布局 */}
+      <div className="flex-1 flex lg:flex-row flex-col min-h-0">
         {/* 左侧原文 */}
-        <div className="w-1/2 border-r border-gray-200">
-          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
+        <div className="lg:w-1/2 w-full lg:border-r lg:border-b-0 border-b border-gray-200 flex flex-col min-w-0">
+          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex-shrink-0">
             <h3 className="text-sm font-medium text-gray-700">原文</h3>
           </div>
-          <div className="p-4 h-full overflow-auto">
-            <pre className="text-sm text-gray-800 whitespace-pre-wrap font-mono">
+          <div className="flex-1 overflow-auto p-4">
+            {/* 
+              修改点：
+              在下面的 <pre> 标签中添加了 `break-all` 类。
+              这个类会强制在长单词（没有空格的字符串）内部换行，
+              从而防止它撑开父容器，保持布局的稳定。
+            */}
+            <pre className="text-sm text-gray-800 whitespace-pre-wrap break-all font-mono leading-relaxed">
               {fileData.original}
             </pre>
           </div>
         </div>
 
         {/* 右侧译文 */}
-        <div className="w-1/2">
-          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200">
+        <div className="lg:w-1/2 w-full flex flex-col min-w-0">
+          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 flex-shrink-0">
             <h3 className="text-sm font-medium text-gray-700">译文</h3>
           </div>
-          <div className="p-4 h-full">
+          <div className="flex-1 p-4">
             <textarea
-              className="w-full h-full resize-none border-none outline-none text-sm font-mono"
+              className="w-full h-full resize-none border-none outline-none text-sm font-mono bg-transparent leading-relaxed focus:ring-0"
               value={translatedContent}
               onChange={(e) => setTranslatedContent(e.target.value)}
               placeholder={fileData.exists ? "翻译内容将显示在这里..." : "此文件尚未翻译，点击'重新翻译'按钮开始翻译"}
+              spellCheck={false}
             />
           </div>
         </div>
@@ -271,4 +320,4 @@ const Workspace: FC<WorkspaceProps> = ({ selectedFile }) => {
   )
 }
 
-export default Workspace 
+export default Workspace
