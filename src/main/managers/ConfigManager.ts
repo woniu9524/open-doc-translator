@@ -10,7 +10,7 @@ export class ConfigManager {
   constructor() {
     // 配置文件存储在用户数据目录下
     const userDataPath = app.getPath('userData')
-    this.configPath = path.join(userDataPath, 'config.json')
+    this.configPath = path.join(userDataPath, 'opendoc-config.json')
   }
 
   /**
