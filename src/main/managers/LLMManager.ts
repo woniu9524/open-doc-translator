@@ -103,7 +103,7 @@ export class LLMManager {
         model: this.settings.model,
         messages,
         temperature: this.settings.temperature,
-        max_tokens: Math.min(4000, content.length * 2) // 估算输出长度
+        max_tokens: Math.min(4000, this.estimateTokens(content) * 2) // 使用更准确的token估算
       })
 
       const translatedContent = response.data.choices[0]?.message?.content || ''
@@ -187,7 +187,7 @@ export class LLMManager {
             model: this.settings.model,
             messages,
             temperature: this.settings.temperature,
-            max_tokens: Math.min(2000, cellData.content.length * 2)
+            max_tokens: Math.min(2000, this.estimateTokens(cellData.content) * 2)
           })
 
           const translatedContent = response.data.choices[0]?.message?.content || cellData.content

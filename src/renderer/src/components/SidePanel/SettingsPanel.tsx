@@ -274,6 +274,15 @@ const SettingsPanel: FC = () => {
                 />
               </div>
             </div>
+            
+            <div className="flex justify-end">
+              <button 
+                className="bg-green-500 hover:bg-green-600 text-white text-sm py-2 px-4 rounded-lg transition-colors font-medium"
+                onClick={testLLMConnection}
+              >
+                测试连接
+              </button>
+            </div>
           </div>
         </div>
 

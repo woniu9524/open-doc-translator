@@ -7,8 +7,6 @@
 [![许可协议](https://img.shields.io/badge/license-MIT-yellow)](https://github.com/YOUR_REPO/open-doc-translator/blob/main/LICENSE)
 [![欢迎PR](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/YOUR_REPO/open-doc-translator/pulls)
 
-**一款开源文档翻译工具，结合 Git 版本控制与 AI 翻译，帮助您轻松、高效地翻译和同步多语言文档。**
-
 ---
 
 ## ✋ 稍等，都2025年了…
@@ -19,7 +17,7 @@
 > *   **社区翻译版本严重滞后**，关键的更新和修复说明遥遥无期。
 > *   **跟着过时的中文文档操作**，结果踩了无数新版本已经修复的坑。
 
-本项目旨在通过LLM快速翻译更新开源文档，更轻松的构建其他语言的文档，减轻文档翻译的负担。
+本项目是一款开源文档翻译工具，结合 Git 版本控制与 AI 翻译，旨在构建一个快速，自动化化的文档翻译流程，更轻松的构建多语言的文档，减轻文档翻译的负担。
 
 ---
 

@@ -6,18 +6,8 @@ interface GitChange {
   staged: boolean
 }
 
-interface GitStatus {
-  modified: string[]
-  added: string[]
-  deleted: string[]
-  renamed: string[]
-  staged: string[]
-  untracked: string[]
-}
-
 const GitPanel: FC = () => {
   const [commitMessage, setCommitMessage] = useState('')
-  const [gitStatus, setGitStatus] = useState<GitStatus | null>(null)
   const [changes, setChanges] = useState<GitChange[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,7 +24,6 @@ const GitPanel: FC = () => {
         window.api.translation.getCurrentWorkingBranch()
       ])
       
-      setGitStatus(status)
       setCurrentBranch(workingBranch)
       
       // 将Git状态转换为变更列表
