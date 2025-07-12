@@ -1,17 +1,35 @@
+import { useState } from 'react'
+import TopToolbar from './components/TopToolbar'
+import SidePanel from './components/SidePanel'
+import Workspace from './components/Workspace'
 
 function App(): React.JSX.Element {
+  const [currentProject, setCurrentProject] = useState<string>('')
+  const [currentBranch, setCurrentBranch] = useState<string>('')
+  const [selectedFile, setSelectedFile] = useState<string>('')
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-        <h1 className="text-3xl font-bold text-gray-800 text-center mb-4">
-          Hello World
-        </h1>
-        <p className="text-gray-600 text-center mb-6">
-          欢迎使用 Electron + React + Tailwind CSS
-        </p>
-        <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200">
-          开始使用
-        </button>
+    <div className="h-screen flex flex-col bg-gray-100">
+      {/* 顶部工具栏 */}
+      <TopToolbar 
+        currentProject={currentProject}
+        setCurrentProject={setCurrentProject}
+        currentBranch={currentBranch}
+        setCurrentBranch={setCurrentBranch}
+      />
+      
+      {/* 主要内容区域 */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* 左侧面板 */}
+        <SidePanel 
+          selectedFile={selectedFile}
+          setSelectedFile={setSelectedFile}
+        />
+        
+        {/* 右侧工作区 */}
+        <Workspace 
+          selectedFile={selectedFile}
+        />
       </div>
     </div>
   )
