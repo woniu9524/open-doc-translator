@@ -92,7 +92,8 @@ export class TranslationService extends EventEmitter {
           file_exts: 'md,mdx',
           special_files: ''
         },
-        prompt: ''
+        prompt: '',
+        upstream_branch: 'upstream/main'  // 设置默认上游分支
       }
 
       // 保存项目配置
@@ -149,9 +150,17 @@ export class TranslationService extends EventEmitter {
         this.fileManagers.set(projectId, fileManager)
       }
 
-      // 获取当前工作分支
+      // 获取当前工作分支（从Git仓库获取）
       const gitManager = this.gitManagers.get(projectId)!
       this.currentWorkingBranch = await gitManager.getCurrentBranch()
+      
+      // 从项目配置中恢复上游分支设置
+      if (project.upstream_branch) {
+        this.currentUpstreamBranch = project.upstream_branch
+      } else {
+        // 如果没有保存的上游分支，使用默认值
+        this.currentUpstreamBranch = 'upstream/main'
+      }
       
       this.emit('project-selected', project)
     } catch (error) {
@@ -198,9 +207,24 @@ export class TranslationService extends EventEmitter {
   /**
    * 切换上游分支
    */
-  setUpstreamBranch(branch: string): void {
-    this.currentUpstreamBranch = branch
-    this.emit('upstream-branch-changed', branch)
+  async setUpstreamBranch(branch: string): Promise<void> {
+    if (!this.currentProjectId) {
+      throw new Error('未选择项目')
+    }
+    
+    try {
+      this.currentUpstreamBranch = branch
+      
+      // 保存上游分支到项目配置
+      await this.configManager.updateProject(this.currentProjectId, {
+        upstream_branch: branch
+      })
+      
+      this.emit('upstream-branch-changed', branch)
+    } catch (error) {
+      this.emit('error', error)
+      throw error
+    }
   }
 
   /**
@@ -543,6 +567,32 @@ export class TranslationService extends EventEmitter {
     try {
       await this.configManager.addPromptTemplate(template)
       this.emit('prompt-template-added', template)
+    } catch (error) {
+      this.emit('error', error)
+      throw error
+    }
+  }
+
+  /**
+   * 更新提示词模板
+   */
+  async updatePromptTemplate(templateName: string, updates: Partial<PromptTemplate>): Promise<void> {
+    try {
+      await this.configManager.updatePromptTemplate(templateName, updates)
+      this.emit('prompt-template-updated', { templateName, updates })
+    } catch (error) {
+      this.emit('error', error)
+      throw error
+    }
+  }
+
+  /**
+   * 删除提示词模板
+   */
+  async removePromptTemplate(templateName: string): Promise<void> {
+    try {
+      await this.configManager.removePromptTemplate(templateName)
+      this.emit('prompt-template-removed', templateName)
     } catch (error) {
       this.emit('error', error)
       throw error

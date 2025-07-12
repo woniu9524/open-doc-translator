@@ -48,6 +48,8 @@ const api = {
     // 提示词模板
     getPromptTemplates: () => ipcRenderer.invoke('translation:getPromptTemplates'),
     addPromptTemplate: (template: any) => ipcRenderer.invoke('translation:addPromptTemplate', template),
+    updatePromptTemplate: (templateName: string, updates: any) => ipcRenderer.invoke('translation:updatePromptTemplate', templateName, updates),
+    removePromptTemplate: (templateName: string) => ipcRenderer.invoke('translation:removePromptTemplate', templateName),
     
     // 事件监听
     on: (channel: string, callback: (...args: any[]) => void) => {

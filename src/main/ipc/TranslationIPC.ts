@@ -63,8 +63,8 @@ export class TranslationIPC {
       return await this.translationService.getLocalBranches()
     })
 
-    ipcMain.handle('translation:setUpstreamBranch', (_, branch: string) => {
-      return this.translationService.setUpstreamBranch(branch)
+    ipcMain.handle('translation:setUpstreamBranch', async (_, branch: string) => {
+      return await this.translationService.setUpstreamBranch(branch)
     })
 
     ipcMain.handle('translation:switchWorkingBranch', async (_, branch: string) => {
@@ -149,6 +149,14 @@ export class TranslationIPC {
       return await this.translationService.addPromptTemplate(template)
     })
 
+    ipcMain.handle('translation:updatePromptTemplate', async (_, templateName: string, updates: Partial<PromptTemplate>) => {
+      return await this.translationService.updatePromptTemplate(templateName, updates)
+    })
+
+    ipcMain.handle('translation:removePromptTemplate', async (_, templateName: string) => {
+      return await this.translationService.removePromptTemplate(templateName)
+    })
+
     // 事件转发
     this.setupEventForwarding()
   }
@@ -217,6 +225,14 @@ export class TranslationIPC {
 
     this.translationService.on('prompt-template-added', (template) => {
       this.sendToRenderer('translation:prompt-template-added', template)
+    })
+
+    this.translationService.on('prompt-template-updated', (data) => {
+      this.sendToRenderer('translation:prompt-template-updated', data)
+    })
+
+    this.translationService.on('prompt-template-removed', (templateName) => {
+      this.sendToRenderer('translation:prompt-template-removed', templateName)
     })
 
     this.translationService.on('error', (error) => {

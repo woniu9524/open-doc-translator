@@ -50,23 +50,39 @@ const TopToolbar: FC<TopToolbarProps> = ({
       setProjects(projectList)
       
       // 获取当前项目
-      const currentProj = await window.api.translation.getCurrentProject()
+      let currentProj = await window.api.translation.getCurrentProject()
+      
+      // 如果没有当前项目但有项目列表，自动选择第一个项目
+      if (!currentProj && projectList.length > 0) {
+        const firstProject = projectList[0]
+        await window.api.translation.selectProject(firstProject.id)
+        currentProj = firstProject
+      }
+      
       if (currentProj) {
+        // 先设置当前项目状态
         setCurrentProject(currentProj.id)
         
-        // 获取当前分支
+        // 获取当前工作分支（从Git仓库获取）
         const currentWorkingBranch = await window.api.translation.getCurrentWorkingBranch()
         if (currentWorkingBranch) {
           setCurrentBranch(currentWorkingBranch)
         }
         
+        // 获取上游分支（从项目配置中恢复）
         const currentUpstream = await window.api.translation.getCurrentUpstreamBranch()
         if (currentUpstream) {
           setCurrentUpstreamBranch(currentUpstream)
         }
         
-        // 加载分支数据
-        await loadBranchData()
+        // 等待状态更新后再加载分支数据
+        setTimeout(async () => {
+          try {
+            await loadBranchData()
+          } catch (error) {
+            console.error('加载分支数据失败:', error)
+          }
+        }, 100)
       }
     } catch (error) {
       console.error('初始化数据失败:', error)
@@ -77,6 +93,12 @@ const TopToolbar: FC<TopToolbarProps> = ({
 
   const loadBranchData = async () => {
     try {
+      // 检查是否有当前项目
+      if (!currentProject) {
+        console.log('没有选择项目，跳过分支数据加载')
+        return
+      }
+      
       // 加载上游分支
       const upstreamBranchList = await window.api.translation.getUpstreamBranches()
       setUpstreamBranches(upstreamBranchList)
@@ -98,9 +120,17 @@ const TopToolbar: FC<TopToolbarProps> = ({
         await window.api.translation.selectProject(projectId)
         setCurrentProject(projectId)
         
-        // 重置分支选择
-        setCurrentBranch('')
-        setCurrentUpstreamBranch('')
+        // 获取当前工作分支（从Git仓库获取）
+        const currentWorkingBranch = await window.api.translation.getCurrentWorkingBranch()
+        if (currentWorkingBranch) {
+          setCurrentBranch(currentWorkingBranch)
+        }
+        
+        // 获取上游分支（从项目配置中恢复）
+        const currentUpstream = await window.api.translation.getCurrentUpstreamBranch()
+        if (currentUpstream) {
+          setCurrentUpstreamBranch(currentUpstream)
+        }
         
         // 重新加载分支数据
         await loadBranchData()
@@ -135,6 +165,18 @@ const TopToolbar: FC<TopToolbarProps> = ({
         // 先调用后端selectProject方法设置当前项目
         await window.api.translation.selectProject(newProject.id)
         setCurrentProject(newProject.id)
+        
+        // 获取当前工作分支（从Git仓库获取）
+        const currentWorkingBranch = await window.api.translation.getCurrentWorkingBranch()
+        if (currentWorkingBranch) {
+          setCurrentBranch(currentWorkingBranch)
+        }
+        
+        // 获取上游分支（从项目配置中恢复）
+        const currentUpstream = await window.api.translation.getCurrentUpstreamBranch()
+        if (currentUpstream) {
+          setCurrentUpstreamBranch(currentUpstream)
+        }
         
         // 重新加载分支数据
         await loadBranchData()
