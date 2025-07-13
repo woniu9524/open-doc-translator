@@ -30,11 +30,18 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [selectAll, setSelectAll] = useState(false)
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
-  const [statusFilter, setStatusFilter] = useState<'all' | 'untranslated' | 'outdated'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'untranslated' | 'outdated' | 'up_to_date'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedExtensions, setSelectedExtensions] = useState<Set<string>>(new Set())
   const [minSize, setMinSize] = useState('')
   const [maxSize, setMaxSize] = useState('')
+  const [translating, setTranslating] = useState(false)
+  const [translationProgress, setTranslationProgress] = useState<{
+    completed: number
+    total: number
+    current: string
+  } | null>(null)
+  const [translationError, setTranslationError] = useState<string | null>(null)
 
   // 获取所有可翻译的文件（未翻译和已过时）
   const translatableFiles = useMemo(() => {
@@ -81,12 +88,6 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
 
     const filterNode = (node: FileNode): FileNode | null => {
       if (node.isFile && node.fileInfo) {
-        // 只显示可翻译的文件
-        if (node.fileInfo.status !== FileStatus.UNTRANSLATED && 
-            node.fileInfo.status !== FileStatus.OUTDATED) {
-          return null
-        }
-
         // 状态过滤
         if (statusFilter !== 'all' && node.fileInfo.status !== statusFilter) {
           return null
@@ -145,6 +146,9 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
     if (isOpen) {
       setSelectedFiles(new Set())
       setSelectAll(false)
+      setTranslating(false)
+      setTranslationProgress(null)
+      setTranslationError(null)
       // 默认展开第一级目录
       if (files.length > 0) {
         const firstLevelDirs = files
@@ -154,6 +158,37 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
       }
     }
   }, [isOpen, files])
+
+  // 监听翻译进度事件
+  useEffect(() => {
+    const handleProgress = (progress: any) => {
+      setTranslationProgress(progress)
+    }
+
+    const handleCompleted = () => {
+      setTranslating(false)
+      setTranslationProgress(null)
+      // 翻译完成后不关闭对话框，让用户看到结果
+    }
+
+    const handleError = (error: any) => {
+      setTranslationError(error.message || '翻译过程中发生错误')
+      setTranslating(false)
+      setTranslationProgress(null)
+    }
+
+    // 监听来自主进程的事件
+    window.api.translation.on('translation:batch-translation-progress', handleProgress)
+    window.api.translation.on('translation:batch-translation-completed', handleCompleted)
+    window.api.translation.on('translation:error', handleError)
+
+    return () => {
+      // 清理事件监听器
+      window.api.translation.off('translation:batch-translation-progress', handleProgress)
+      window.api.translation.off('translation:batch-translation-completed', handleCompleted)
+      window.api.translation.off('translation:error', handleError)
+    }
+  }, [])
 
   const handleSelectAll = () => {
     if (selectAll) {
@@ -239,6 +274,7 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
               onChange={() => handleFileToggle(node.path)}
               className="w-4 h-4 mr-3"
               onClick={(e) => e.stopPropagation()}
+              disabled={translating}
             />
           )}
           <span className="mr-3 text-gray-500">
@@ -267,9 +303,20 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
     )
   }
 
-  const handleConfirm = () => {
-    onConfirm(Array.from(selectedFiles))
-    onClose()
+  const handleConfirm = async () => {
+    if (selectedFiles.size === 0) return
+
+    setTranslating(true)
+    setTranslationProgress({ completed: 0, total: selectedFiles.size, current: '' })
+    setTranslationError(null)
+
+    try {
+      await onConfirm(Array.from(selectedFiles))
+    } catch (err) {
+      setTranslationError(err instanceof Error ? err.message : '批量翻译失败')
+      setTranslating(false)
+      setTranslationProgress(null)
+    }
   }
 
   if (!isOpen) return null
@@ -289,6 +336,7 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
               placeholder="搜索文件..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={translating}
             />
           </div>
 
@@ -299,7 +347,8 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
               {[
                 { value: 'all', label: '全部', color: 'bg-gray-100 text-gray-700' },
                 { value: 'untranslated', label: '未译', color: 'bg-gray-100 text-gray-600' },
-                { value: 'outdated', label: '过时', color: 'bg-orange-100 text-orange-600' }
+                { value: 'outdated', label: '过时', color: 'bg-orange-100 text-orange-600' },
+                { value: 'up_to_date', label: '已译', color: 'bg-green-100 text-green-600' }
               ].map(option => (
                 <button
                   key={option.value}
@@ -307,8 +356,9 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
                     statusFilter === option.value
                       ? 'bg-blue-500 text-white'
                       : `${option.color} hover:bg-opacity-70`
-                  }`}
+                  } ${translating ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={() => setStatusFilter(option.value as any)}
+                  disabled={translating}
                 >
                   {option.label}
                 </button>
@@ -328,6 +378,7 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
                       className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       checked={selectedExtensions.has(ext)}
                       onChange={() => handleExtensionToggle(ext)}
+                      disabled={translating}
                     />
                     <span className="text-xs text-gray-600">.{ext}</span>
                   </label>
@@ -346,6 +397,7 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
                 placeholder="最小"
                 value={minSize}
                 onChange={(e) => setMinSize(e.target.value)}
+                disabled={translating}
               />
               <input
                 type="number"
@@ -353,6 +405,7 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
                 placeholder="最大"
                 value={maxSize}
                 onChange={(e) => setMaxSize(e.target.value)}
+                disabled={translating}
               />
             </div>
           </div>
@@ -366,6 +419,7 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
               checked={selectAll}
               onChange={handleSelectAll}
               className="w-4 h-4"
+              disabled={translating}
             />
             <span className="text-sm">全选 ({translatableFiles.length} 个文件)</span>
           </label>
@@ -373,6 +427,40 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
             已选择 {selectedFiles.size} 个文件
           </span>
         </div>
+
+        {/* 翻译进度显示 */}
+        {translationProgress && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-700">翻译进度</span>
+              <span className="text-sm text-blue-600">
+                {translationProgress.completed}/{translationProgress.total} 
+                ({Math.round((translationProgress.completed / translationProgress.total) * 100)}%)
+              </span>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2 mb-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(translationProgress.completed / translationProgress.total) * 100}%` }}
+              />
+            </div>
+            {translationProgress.current && (
+              <div className="text-xs text-blue-600 truncate">
+                当前翻译: {translationProgress.current}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 错误信息显示 */}
+        {translationError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <span className="mr-2 text-red-500">❌</span>
+              <span className="text-sm text-red-700">{translationError}</span>
+            </div>
+          </div>
+        )}
 
         {/* 文件树 */}
         <div className="flex-1 overflow-auto border border-gray-200 rounded-lg">
@@ -392,15 +480,16 @@ const BatchTranslationDialog: FC<BatchTranslationDialogProps> = ({
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+            disabled={translating}
           >
-            取消
+            {translating ? '翻译中...' : '关闭'}
           </button>
           <button
             onClick={handleConfirm}
-            disabled={selectedFiles.size === 0}
+            disabled={selectedFiles.size === 0 || translating}
             className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            开始翻译 ({selectedFiles.size})
+            {translating ? '翻译中...' : `开始翻译 (${selectedFiles.size})`}
           </button>
         </div>
       </div>

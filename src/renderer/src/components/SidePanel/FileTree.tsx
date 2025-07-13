@@ -31,12 +31,6 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [batchDialogOpen, setBatchDialogOpen] = useState(false)
-  const [translating, setTranslating] = useState(false)
-  const [translationProgress, setTranslationProgress] = useState<{
-    completed: number
-    total: number
-    current: string
-  } | null>(null)
 
   // 从文件树中提取所有文件扩展名
   const availableExtensions = useMemo(() => {
@@ -204,26 +198,10 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
 
   // 监听翻译进度事件
   useEffect(() => {
-    const handleProgress = (progress: any) => {
-      setTranslationProgress(progress)
-    }
-
-    const handleCompleted = () => {
-      setTranslating(false)
-      setTranslationProgress(null)
-      loadFileTree() // 重新加载文件树
-    }
-
     const handleFileTranslated = (data: any) => {
       if (data.success) {
         loadFileTree() // 单个文件翻译完成后刷新文件树
       }
-    }
-
-    const handleError = (error: any) => {
-      setError(error.message || '翻译过程中发生错误')
-      setTranslating(false)
-      setTranslationProgress(null)
     }
 
     const handleProjectSelected = () => {
@@ -237,19 +215,13 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
     }
 
     // 监听来自主进程的事件
-    window.api.translation.on('translation:batch-translation-progress', handleProgress)
-    window.api.translation.on('translation:batch-translation-completed', handleCompleted)
     window.api.translation.on('translation:file-translated', handleFileTranslated)
-    window.api.translation.on('translation:error', handleError)
     window.api.translation.on('translation:project-selected', handleProjectSelected)
     window.api.translation.on('translation:upstream-fetched', handleUpstreamFetched)
 
     return () => {
       // 清理事件监听器
-      window.api.translation.off('translation:batch-translation-progress', handleProgress)
-      window.api.translation.off('translation:batch-translation-completed', handleCompleted)
       window.api.translation.off('translation:file-translated', handleFileTranslated)
-      window.api.translation.off('translation:error', handleError)
       window.api.translation.off('translation:project-selected', handleProjectSelected)
       window.api.translation.off('translation:upstream-fetched', handleUpstreamFetched)
     }
@@ -296,15 +268,12 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
   const handleBatchTranslation = async (selectedFiles: string[]) => {
     if (selectedFiles.length === 0) return
 
-    setTranslating(true)
-    setTranslationProgress({ completed: 0, total: selectedFiles.length, current: '' })
-
     try {
       await window.api.translation.batchTranslateFiles(selectedFiles)
+      // 不在这里关闭对话框，让BatchTranslationDialog自己处理
     } catch (err) {
-      setError(err instanceof Error ? err.message : '批量翻译失败')
-      setTranslating(false)
-      setTranslationProgress(null)
+      // 错误会在BatchTranslationDialog中处理
+      throw err
     }
   }
 
@@ -453,32 +422,11 @@ const FileTree: FC<FileTreeProps> = ({ selectedFile, setSelectedFile }) => {
         {/* 批量翻译按钮 */}
         <button
           onClick={() => setBatchDialogOpen(true)}
-          disabled={loading || translating}
+          disabled={loading}
           className="w-full bg-blue-500 hover:bg-blue-600 text-white text-sm py-2 px-3 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {translating ? '翻译中...' : '批量翻译'}
+          批量翻译
         </button>
-
-        {/* 翻译进度 */}
-        {translationProgress && (
-          <div className="text-xs text-gray-600">
-            <div className="flex justify-between mb-1">
-              <span>进度: {translationProgress.completed}/{translationProgress.total}</span>
-              <span>{Math.round((translationProgress.completed / translationProgress.total) * 100)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-500 h-2 rounded-full transition-all"
-                style={{ width: `${(translationProgress.completed / translationProgress.total) * 100}%` }}
-              />
-            </div>
-            {translationProgress.current && (
-              <div className="mt-1 text-xs text-gray-500 truncate">
-                当前: {translationProgress.current}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* 文件树 */}
