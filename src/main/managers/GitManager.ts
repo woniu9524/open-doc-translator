@@ -122,6 +122,34 @@ export class GitManager {
   }
 
   /**
+   * 获取默认的上游分支（通常是 main 或 master）
+   */
+  async getDefaultUpstreamBranch(): Promise<string> {
+    try {
+      const branches = await this.getUpstreamBranches()
+      
+      // 优先选择 main 分支
+      if (branches.includes('upstream/main')) {
+        return 'upstream/main'
+      }
+      
+      // 如果没有 main，选择 master 分支
+      if (branches.includes('upstream/master')) {
+        return 'upstream/master'
+      }
+      
+      // 如果都没有，返回第一个分支
+      if (branches.length > 0) {
+        return branches[0]
+      }
+      
+      throw new Error('未找到任何上游分支')
+    } catch (error) {
+      throw new Error(`获取默认上游分支失败: ${error}`)
+    }
+  }
+
+  /**
    * 获取文件的blob hash
    */
   async getFileHash(branch: string, filePath: string): Promise<string | null> {

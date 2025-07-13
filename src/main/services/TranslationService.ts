@@ -20,7 +20,7 @@ export class TranslationService extends EventEmitter {
   private fileManagers: Map<string, FileManager> = new Map()
   private llmManager: LLMManager | null = null
   private currentProjectId: string | null = null
-  private currentUpstreamBranch: string = 'upstream/main'
+  private currentUpstreamBranch: string = ''
   private currentWorkingBranch: string = 'main'
 
   constructor() {
@@ -75,6 +75,10 @@ export class TranslationService extends EventEmitter {
         throw new Error('未找到upstream远程仓库')
       }
 
+      // 获取默认上游分支
+      await gitManager.fetchUpstream()
+      const defaultUpstreamBranch = await gitManager.getDefaultUpstreamBranch()
+
       // 创建项目配置
       const projectId = uuidv4()
       const projectName = projectPath.split(/[/\\]/).pop() || 'Unknown Project'
@@ -93,7 +97,7 @@ export class TranslationService extends EventEmitter {
           special_files: ''
         },
         prompt: '',
-        upstream_branch: 'upstream/main'  // 设置默认上游分支
+        upstream_branch: defaultUpstreamBranch  // 使用动态获取的默认上游分支
       }
 
       // 保存项目配置
@@ -158,8 +162,14 @@ export class TranslationService extends EventEmitter {
       if (project.upstream_branch) {
         this.currentUpstreamBranch = project.upstream_branch
       } else {
-        // 如果没有保存的上游分支，使用默认值
-        this.currentUpstreamBranch = 'upstream/main'
+        // 如果没有保存的上游分支，动态获取默认分支
+        await gitManager.fetchUpstream()
+        this.currentUpstreamBranch = await gitManager.getDefaultUpstreamBranch()
+        
+        // 保存到项目配置中
+        await this.configManager.updateProject(projectId, {
+          upstream_branch: this.currentUpstreamBranch
+        })
       }
       
       this.emit('project-selected', project)

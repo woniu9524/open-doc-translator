@@ -8,7 +8,8 @@ const SettingsPanel: FC = () => {
     base_url: 'https://api.openai.com/v1',
     model: 'gpt-4-turbo',
     temperature: 0.7,
-    concurrency: 5
+    concurrency: 5,
+    max_tokens: 4000
   })
 
   // 项目设置状态
@@ -262,26 +263,31 @@ const SettingsPanel: FC = () => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-2">
-                  并发数
+                  Max Tokens
                 </label>
                 <input
                   type="number"
-                  min="1"
-                  max="10"
+                  min="100"
+                  step="100"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={llmSettings.concurrency}
-                  onChange={(e) => setLlmSettings({...llmSettings, concurrency: parseInt(e.target.value)})}
+                  value={llmSettings.max_tokens}
+                  onChange={(e) => setLlmSettings({...llmSettings, max_tokens: parseInt(e.target.value)})}
                 />
               </div>
             </div>
             
-            <div className="flex justify-end">
-              <button 
-                className="bg-green-500 hover:bg-green-600 text-white text-sm py-2 px-4 rounded-lg transition-colors font-medium"
-                onClick={testLLMConnection}
-              >
-                测试连接
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-2">
+                并发数
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="10"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={llmSettings.concurrency}
+                onChange={(e) => setLlmSettings({...llmSettings, concurrency: parseInt(e.target.value)})}
+              />
             </div>
           </div>
         </div>

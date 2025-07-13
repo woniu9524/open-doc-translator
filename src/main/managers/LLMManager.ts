@@ -39,7 +39,7 @@ export class LLMManager {
             content: 'Hello, this is a test message.'
           }
         ],
-        max_tokens: 10,
+        max_tokens: Math.min(10, this.settings.max_tokens),
         temperature: 0.1
       })
       
@@ -103,7 +103,7 @@ export class LLMManager {
         model: this.settings.model,
         messages,
         temperature: this.settings.temperature,
-        max_tokens: Math.min(4000, this.estimateTokens(content) * 2) // 使用更准确的token估算
+        max_tokens: Math.min(this.settings.max_tokens, this.estimateTokens(content) * 2) // 使用配置的max_tokens
       })
 
       const translatedContent = response.data.choices[0]?.message?.content || ''
@@ -187,7 +187,7 @@ export class LLMManager {
             model: this.settings.model,
             messages,
             temperature: this.settings.temperature,
-            max_tokens: Math.min(2000, this.estimateTokens(cellData.content) * 2)
+            max_tokens: Math.min(this.settings.max_tokens, this.estimateTokens(cellData.content) * 2)
           })
 
           const translatedContent = response.data.choices[0]?.message?.content || cellData.content

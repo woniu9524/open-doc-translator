@@ -23,6 +23,7 @@ export interface LLMSettings {
   model: string
   temperature: number
   concurrency: number
+  max_tokens: number
 }
 
 // 提示词模板类型
