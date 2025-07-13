@@ -285,15 +285,6 @@ const TopToolbar: FC<TopToolbarProps> = ({
           </select>
         </div>
 
-        {/* 刷新上游分支 */}
-        <button 
-          className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded transition-colors disabled:opacity-50"
-          onClick={handleRefreshUpstream}
-          disabled={!currentProject || isRefreshing || isLoading}
-        >
-          {isRefreshing ? '刷新中...' : '刷新上游'}
-        </button>
-
         {/* 工作分支选择 */}
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium text-gray-700">工作分支:</label>
@@ -309,21 +300,15 @@ const TopToolbar: FC<TopToolbarProps> = ({
             ))}
           </select>
         </div>
-      </div>
 
-      {/* 右侧状态信息 */}
-      <div className="flex items-center space-x-4">
-        <div className="text-sm text-gray-500">
-          项目: {getCurrentProjectName()}
-        </div>
-        <div className="text-sm text-gray-500">
-          分支: {currentBranch || '未选择分支'}
-        </div>
-        {isLoading && (
-          <div className="text-sm text-blue-500">
-            加载中...
-          </div>
-        )}
+        {/* 刷新上游分支 */}
+        <button 
+          className="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded transition-colors disabled:opacity-50"
+          onClick={handleRefreshUpstream}
+          disabled={!currentProject || isRefreshing || isLoading}
+        >
+          {isRefreshing ? '刷新中...' : '刷新上游'}
+        </button>
       </div>
     </div>
   )

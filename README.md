@@ -21,6 +21,16 @@
 
 ---
 
+
+## 📚 维护的文档
+
+当前使用 OpenDocTranslator 维护了以下中文文档项目：
+
+* **[LangGraph 中文文档](https://woniu9524.github.io/langgraph/)** - LangGraph 框架的中文翻译文档
+* **[LangChain 中文文档](https://woniu9524.github.io/langchain)** - LangChain 框架的中文翻译文档
+
+---
+
 ## ✨ 核心功能
 
 *   **🗂️ 多项目管理**：在一个界面中轻松管理和切换多个 Git 翻译项目。
@@ -32,14 +42,6 @@
 
 ---
 
-## 📚 维护的文档
-
-使用 OpenDocTranslator 维护以下中文文档项目：
-
-* **[LangGraph 中文文档](https://woniu9524.github.io/langgraph/)** - LangGraph 框架的中文翻译文档
-* **[LangChain 中文文档](https://woniu9524.github.io/langchain)** - LangChain 框架的中文翻译文档
-
----
 
 ## 🚀 快速上手
 
