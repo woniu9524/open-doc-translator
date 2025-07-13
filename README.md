@@ -32,6 +32,15 @@
 
 ---
 
+## 📚 维护的文档
+
+使用 OpenDocTranslator 维护以下中文文档项目：
+
+* **[LangGraph 中文文档](https://woniu9524.github.io/langgraph/)** - LangGraph 框架的中文翻译文档
+* **[LangChain 中文文档](https://woniu9524.github.io/langchain)** - LangChain 框架的中文翻译文档
+
+---
+
 ## 🚀 快速上手
 
 ### 前期准备：配置你的 Git 环境
@@ -87,8 +96,6 @@
     *   `已翻译 (Up-to-date)`: 状态文件中有记录，且 `source_hash` 与上游完全一致。
 
 ---
-
-
 
 ## 📄 许可协议
 
