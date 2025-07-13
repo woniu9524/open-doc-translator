@@ -26,8 +26,11 @@
 
 当前使用 OpenDocTranslator 维护了以下中文文档项目：
 
-* **[LangGraph 中文文档](https://woniu9524.github.io/langgraph/)** - LangGraph 框架的中文翻译文档
-* **[LangChain 中文文档](https://woniu9524.github.io/langchain)** - LangChain 框架的中文翻译文档
+| 文档名称 | 描述 | 链接 |
+|---------|------|------|
+| **LangGraph 中文文档** | LangGraph 框架的中文翻译文档 | [https://woniu9524.github.io/langgraph/](https://woniu9524.github.io/langgraph/) |
+| **LangChain 中文文档** | LangChain 框架的中文翻译文档 | [https://woniu9524.github.io/langchain](https://woniu9524.github.io/langchain) |
+| **Agno 中文文档** | Agno 多代理系统框架的中文翻译文档 | [https://ikun.mintlify.app/introduction](https://ikun.mintlify.app/introduction) |
 
 ---
 
@@ -61,7 +64,11 @@
     ```bash
     git remote add upstream <上游官方仓库 URL>
     ```
-5.  **创建翻译分支**：
+5.  **拉取分支**
+    ```bash
+    git fetch upstream
+    ```
+6.  **创建翻译分支**：
     ```bash
     git checkout -b translation-zh # 或其他你喜欢的分支名
     ```

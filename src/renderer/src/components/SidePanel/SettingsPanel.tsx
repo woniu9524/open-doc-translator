@@ -14,8 +14,8 @@ const SettingsPanel: FC = () => {
 
   // 项目设置状态
   const [projectSettings, setProjectSettings] = useState({
-    includeDirs: 'docs',
-    fileExts: 'md,mdx',
+    includeDirs: '',
+    fileExts: 'md,mdx,ipynb',
     specialFiles: ''
   })
 

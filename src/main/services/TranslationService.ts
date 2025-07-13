@@ -432,20 +432,22 @@ export class TranslationService extends EventEmitter {
       const gitManager = this.gitManagers.get(this.currentProjectId)!
       const fileManager = this.fileManagers.get(this.currentProjectId)!
       
-      // 准备翻译任务
+      // 准备翻译任务 - 优化：使用批量获取方法
       const tasks: TranslationTask[] = []
       
-      for (const filePath of filePaths) {
-        const content = await gitManager.getFileContent(this.currentUpstreamBranch, filePath)
-        const sourceHash = await gitManager.getFileHash(this.currentUpstreamBranch, filePath)
-        
-        if (sourceHash) {
-          tasks.push({
-            filePath,
-            content,
-            sourceHash
-          })
-        }
+      // 批量获取所有文件的内容和hash
+      const fileContentsAndHashes = await gitManager.getBatchFileContentsAndHashes(
+        this.currentUpstreamBranch, 
+        filePaths
+      )
+      
+      // 构建翻译任务
+      for (const [filePath, { content, hash }] of fileContentsAndHashes) {
+        tasks.push({
+          filePath,
+          content,
+          sourceHash: hash
+        })
       }
       
       // 使用项目配置的prompt或传入的prompt

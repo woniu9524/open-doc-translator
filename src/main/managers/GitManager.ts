@@ -267,6 +267,49 @@ export class GitManager {
   }
 
   /**
+   * 批量获取文件内容和hash（优化版本）
+   */
+  async getBatchFileContentsAndHashes(branch: string, filePaths: string[]): Promise<Map<string, { content: string; hash: string }>> {
+    try {
+      if (filePaths.length === 0) {
+        return new Map()
+      }
+
+      // 先批量获取文件hash信息
+      const fileInfos = await this.getBatchFileInfos(branch, filePaths)
+      
+      // 并行获取所有文件的内容
+      const contentPromises = filePaths.map(async (filePath) => {
+        try {
+          const fileInfo = fileInfos.get(filePath)
+          if (!fileInfo) {
+            return { filePath, content: null, hash: null }
+          }
+          
+          const content = await this.getFileContent(branch, filePath)
+          return { filePath, content, hash: fileInfo.hash }
+        } catch (error) {
+          console.warn(`获取文件内容失败: ${filePath}`, error)
+          return { filePath, content: null, hash: null }
+        }
+      })
+      
+      const results = await Promise.all(contentPromises)
+      
+      const resultMap = new Map<string, { content: string; hash: string }>()
+      for (const result of results) {
+        if (result.content && result.hash) {
+          resultMap.set(result.filePath, { content: result.content, hash: result.hash })
+        }
+      }
+      
+      return resultMap
+    } catch (error) {
+      throw new Error(`批量获取文件内容和hash失败: ${error}`)
+    }
+  }
+
+  /**
    * 获取项目中符合条件的文件列表
    */
   async getProjectFiles(
