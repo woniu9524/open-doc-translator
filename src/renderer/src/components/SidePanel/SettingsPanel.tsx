@@ -401,7 +401,7 @@ const SettingsPanel: FC = () => {
                   value={projectSettings.specialFiles}
                   onChange={(e) => setProjectSettings({...projectSettings, specialFiles: e.target.value})}
                 />
-                <p className="text-xs text-gray-500 mt-2">总是监听的文件，不受监听目录和扩展名限制</p>
+                <p className="text-xs text-gray-500 mt-2">总是监听的文件，不受监听目录和扩展名限制，使用相对路径。</p>
               </div>
             </div>
           </div>

@@ -30,7 +30,7 @@ export class ConfigManager {
       prompt_templates: [
         {
           name: 'mdx格式翻译',
-          content: "我需要你扮演一个精通 MDX 格式的技术翻译专家。你的任务是将以下英文 MDX 内容翻译成简体中文。\n\n在翻译过程中，你必须严格遵守以下规则，这是最重要的指令：\n1.  **绝对不能翻译 JSX 组件名称**。例如，`<MyComponent>` 必须保持为 `<MyComponent>`，不能翻译成 `<我的组件>`。\n2.  **绝对不能翻译 JSX 组件的属性名（props）**。例如，在 `<Chart title=\"Sales\">` 中，`title` 必须保持不变。\n3.  **只翻译 JSX 组件属性中的字符串值**。例如，在 `<Chart title=\"Sales\">` 中，你需要将 `\"Sales\"` 翻译成 `\"销售额\"`，最终结果是 `<Chart title=\"销售额\">`。\n4.  **翻译 JSX 组件标签之间的文本内容**。例如，`<Alert>This is important</Alert>` 应翻译为 `<Alert>这很重要</Alert>`。\n5.  **绝对不能翻译 `import` 和 `export` 语句**，包括文件路径。它们是代码，必须原样保留。\n6.  **绝对不能翻译 YAML Frontmatter 中的键（key）**。例如，`title: \"My Doc\"` 中的 `title:` 必须保留，只翻译值 `\"My Doc\"`。\n7.  **代码块中只允许翻译注释且**（即 ``` ... ``` 之间的内容）。\n8.  **绝对不能翻译任何花括号 `{}` 中的 JavaScript 表达式或变量**。例如 `{name}` 或 `{data.length}`。\n9.  **保留所有的 Markdown 语法**，如 `#`, `*`, `-`, `[]()`, `![]()` 等，只翻译其中的文本部分。\n10. **URL中避免使用中文标点符号**，使用英文标点符号（如句号用 `.` 而不是 `。`）\n你是一位精通中英双语的专业技术文档翻译专家。你的任务是将以下英文技术文档翻译成简体中文。\n简而言之：**只翻译给人类阅读的纯文本内容，所有用于程序解析的语法、代码、组件名和属性名都必须保持英文原文。**\n\n**输出要求：**\n- 只输出翻译后的内容\n- 禁止在译文的开头或结尾添加任何额外说明、介绍、总结或致谢等文字\n- 例如，不要说\"这是您的翻译：\"或\"翻译完成。\""
+          content: "你是一位精通 MDX 的技术翻译专家，请将英文 MDX 内容翻译为简体中文，要求符合中文阅读习惯，不要僵硬的翻译，适当修改是可以接受的。\n核心原则：只翻译供人类阅读的文本，所有代码及程序语法部分（如组件名、属性名、变量、链接）必须保持英文原文。\n翻译准则\n翻译以下内容：\nMarkdown 纯文本。\nJSX 标签间的文本：<Alert>Translate this text.</Alert>\nJSX 属性的字符串值：<Chart title=\"Translate this value\" />\n代码中的常规注释：// Translate this comment.\nYAML Frontmatter 的值：title: \"Translate this\"\n保持以下内容原文不变：\nJSX 组件名和属性名：<MyComponent propName={...}>\n花括号 {} 内的所有内容。\n所有代码，包括 import/export 语句。\nURL 和文件路径。\nYAML Frontmatter 的键：title:\n输出要求\n直接返回翻译后的 MDX 内容。\n严格保持原文的格式、代码和换行。\n不要添加任何额外的说明或总结。"
         }
       ]
     }
