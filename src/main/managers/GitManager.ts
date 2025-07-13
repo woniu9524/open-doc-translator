@@ -273,7 +273,7 @@ export class GitManager {
     upstreamBranch: string,
     includeDirs: string,
     fileExts: string,
-    excludePatterns: string = ''
+    specialFiles: string = ''
   ): Promise<string[]> {
     try {
       // 获取上游分支的所有文件
@@ -283,9 +283,24 @@ export class GitManager {
       // 将字符串参数转换为数组
       const includeDirArray = includeDirs.split(',').map(dir => dir.trim()).filter(dir => dir.length > 0)
       const fileExtArray = fileExts.split(',').map(ext => ext.trim()).filter(ext => ext.length > 0)
-      const excludePatternArray = excludePatterns.split(',').map(pattern => pattern.trim()).filter(pattern => pattern.length > 0)
+      const specialFilesArray = specialFiles.split(',').map(file => file.trim()).filter(file => file.length > 0)
       
       return fileList.filter(filePath => {
+        // 检查是否为特殊文件（总是包含）
+        const isSpecialFile = specialFilesArray.some(specialFile => {
+          // 支持精确匹配和通配符匹配
+          if (specialFile.includes('*')) {
+            const regex = new RegExp(specialFile.replace(/\*/g, '.*'))
+            return regex.test(filePath)
+          } else {
+            return filePath === specialFile || filePath.endsWith('/' + specialFile)
+          }
+        })
+        
+        if (isSpecialFile) {
+          return true // 特殊文件总是包含
+        }
+        
         // 检查是否在包含目录中
         const inIncludeDir = includeDirArray.length === 0 || 
           includeDirArray.some(dir => filePath.startsWith(dir))
@@ -296,15 +311,7 @@ export class GitManager {
         const ext = path.extname(filePath).slice(1).toLowerCase()
         const hasValidExt = fileExtArray.length === 0 || fileExtArray.includes(ext)
         
-        if (!hasValidExt) return false
-        
-        // 检查排除模式
-        const isExcluded = excludePatternArray.some(pattern => {
-          const regex = new RegExp(pattern.replace(/\*/g, '.*'))
-          return regex.test(filePath)
-        })
-        
-        return !isExcluded
+        return hasValidExt
       })
     } catch (error) {
       throw new Error(`获取项目文件列表失败: ${error}`)
