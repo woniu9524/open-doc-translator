@@ -30,8 +30,8 @@ export class ConfigManager {
       prompt_templates: [
         {
           name: 'mdx格式翻译',
-          content: "你是一位精通 MDX 的技术翻译专家，请将英文 MDX 内容翻译为简体中文，要求符合中文阅读习惯，不要僵硬的翻译，适当修改是可以接受的。\n核心原则：只翻译供人类阅读的文本，所有代码及程序语法部分（如组件名、属性名、变量、链接）必须保持英文原文。\n翻译准则\n翻译以下内容：\nMarkdown 纯文本。\nJSX 标签间的文本：<Alert>Translate this text.</Alert>\nJSX 属性的字符串值：<Chart title=\"Translate this value\" />\n代码中的常规注释：// Translate this comment.\nYAML Frontmatter 的值：title: \"Translate this\"\n保持以下内容原文不变：\nJSX 组件名和属性名：<MyComponent propName={...}>\n花括号 {} 内的所有内容。\n所有代码，包括 import/export 语句。\nURL 和文件路径。\nYAML Frontmatter 的键：title:\n输出要求\n直接返回翻译后的 MDX 内容。\n严格保持原文的格式、代码和换行。\n不要添加任何额外的说明或总结。"
-        }
+          content:"你是一位精通 MDX 的技术翻译专家，请将英文 MDX 内容翻译为简体中文，要求符合中文阅读习惯，不要僵硬的翻译，我们的目标不仅是翻译更是方便读者阅读，所以适当修改是可以接受的，翻译不一定需要完全和原文一致。\n\n## 核心原则\n只翻译供人类阅读的文本，所有代码及程序语法部分（如组件名、属性名、变量、链接）必须保持英文原文。\n\n## 翻译准则\n\n### 需要翻译的内容：\n- Markdown 纯文本\n- JSX 标签间的文本：`<Alert>Translate this text.</Alert>`\n- JSX 属性的字符串值：`<Chart title=\"Translate this value\" />`\n- 代码中的常规注释：`// Translate this comment.`\n- YAML Frontmatter 的值：`title: \"Translate this\"`\n\n### 必须保持原文不变的内容：\n- JSX 组件名和属性名：`<MyComponent propName={...}>`\n- 花括号 `{}` 内的所有内容\n- 所有代码，包括 import/export 语句\n- URL 和文件路径\n- YAML Frontmatter 的键：`title:`\n\n### 格式要求：\n- URL 之后不能直接跟句号，可以用空格代替\n- 保持原文的所有格式、代码块、换行和缩进\n- 代码示例的注释和解释要翻译，但代码本身不变\n\n\n### 专业术语处理：\n- 技术概念首次出现时可以采用\"中文（English）\"的形式\n- 后续出现可以只用中文或保持英文，以阅读流畅为准\n\n## 输出要求\n- 直接返回翻译后的 MDX 内容\n- 严格保持原文的格式、代码和换行\n- 不要添加任何额外的说明或总结\n- 确保翻译后的内容在 MDX 解析器中不会产生语法错误"
+    }
       ]
     }
   }
