@@ -111,12 +111,92 @@ export class GitManager {
   }
 
   /**
+   * 获取分支的最新提交信息
+   */
+  async getBranchLatestCommit(branch: string): Promise<{ hash: string; message: string; date: string } | null> {
+    try {
+      const log = await this.git.log(['-1', '--pretty=format:%H|%s|%ai', branch])
+      if (log.latest) {
+        // 解析格式化的输出
+        const formattedOutput = log.latest.message
+        const parts = formattedOutput.split('|')
+        
+        if (parts.length >= 3) {
+          return {
+            hash: parts[0],
+            message: parts[1],
+            date: parts[2]
+          }
+        } else {
+          // 如果解析失败，使用默认格式
+          return {
+            hash: log.latest.hash,
+            message: log.latest.message,
+            date: log.latest.date
+          }
+        }
+      }
+      return null
+    } catch {
+      return null
+    }
+  }
+
+  /**
    * 从上游拉取更新
    */
   async fetchUpstream(): Promise<void> {
     try {
-      await this.git.fetch('upstream')
+      console.log('正在执行: git fetch upstream --prune')
+      
+      // 获取拉取前的远程分支信息
+      const branchesBefore = await this.getUpstreamBranches()
+      console.log('拉取前的上游分支数量:', branchesBefore.length)
+      
+      // 获取主要分支的拉取前提交信息
+      const defaultBranch = await this.getDefaultUpstreamBranch().catch(() => null)
+      let commitBefore: { hash: string; message: string; date: string } | null = null
+      if (defaultBranch) {
+        commitBefore = await this.getBranchLatestCommit(defaultBranch)
+        console.log(`拉取前 ${defaultBranch} 最新提交:`, commitBefore?.hash.substring(0, 8))
+      }
+      
+      // 执行 git fetch upstream --prune
+      await this.git.fetch(['upstream', '--prune'])
+      console.log('git fetch upstream --prune 执行完成')
+      
+      // 获取拉取后的远程分支信息
+      const branchesAfter = await this.getUpstreamBranches()
+      console.log('拉取后的上游分支数量:', branchesAfter.length)
+      
+      // 检查是否有新的分支或更新
+      const newBranches = branchesAfter.filter(branch => !branchesBefore.includes(branch))
+      const deletedBranches = branchesBefore.filter(branch => !branchesAfter.includes(branch))
+      
+      if (newBranches.length > 0) {
+        console.log('发现新的上游分支:', newBranches)
+      }
+      if (deletedBranches.length > 0) {
+        console.log('已删除的上游分支:', deletedBranches)
+      }
+      
+      // 检查主要分支是否有更新
+      if (defaultBranch) {
+        const commitAfter = await this.getBranchLatestCommit(defaultBranch)
+        console.log(`拉取后 ${defaultBranch} 最新提交:`, commitAfter?.hash.substring(0, 8))
+        
+        if (commitBefore && commitAfter && commitBefore.hash !== commitAfter.hash) {
+          console.log('🔄 检测到上游更新!')
+          console.log(`  从: ${commitBefore.hash.substring(0, 8)} - ${commitBefore.message}`)
+          console.log(`  到: ${commitAfter.hash.substring(0, 8)} - ${commitAfter.message}`)
+        } else if (commitBefore && commitAfter && commitBefore.hash === commitAfter.hash) {
+          console.log('📝 上游无新提交，已是最新状态')
+        }
+      }
+      
+      console.log('✅ 上游更新拉取成功')
     } catch (error) {
+      console.error('❌ 拉取上游更新失败:', error)
       throw new Error(`拉取上游更新失败: ${error}`)
     }
   }

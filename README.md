@@ -1,4 +1,4 @@
-# OpenDocTranslator —— 让语言不再是学习的壁垒
+# OpenDocTranslator —— 让语言不再成为学习开源项目的壁垒
 
 [![构建状态](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/YOUR_REPO/open-doc-translator)
 [![版本](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/YOUR_REPO/open-doc-translator)
@@ -7,30 +7,29 @@
 
 ---
 
-## ✋ 稍等，都2025年了…
+## 😫 还在为啃英文文档而焦头烂额？
 
-你还在为啃英文文档而头疼吗？：
 
-> *   **官方文档只有英文版**，阅读吃力，理解效率大打折扣。
-> *   **社区翻译版本严重滞后**，关键的更新和修复说明遥遥无期。
-> *   **跟着过时的中文文档操作**，结果踩了无数新版本已经修复的坑。
+> *   **🐢 追赶不及的官方文档**：核心技术文档只有英文版，阅读效率低下，核心概念难以快速掌握。
+> *   **⏳ 滞后的社区翻译**：关键更新和重要修复的中文说明遥遥无期，错过最新进展。
+> *   **⚠️ 过时文档的陷阱**：盲目跟随旧版中文教程，踩坑无数，时间白白浪费。
 
-**OpenDocTranslator** 是一个双轨并行的开源项目：
+**OpenDocTranslator** 旨在解决这些问题：
 
 1. **🛠️ 开源文档翻译工具**：结合 Git 版本控制与 AI 翻译，构建快速、自动化的文档翻译流程，减少人工重复工作。
 2. **📋 开源文档翻译维护计划**：系统性地维护和更新一些常用的开源项目文档，确保翻译质量与时效性。
 
 ---
 
-## 📚 当前维护的文档项目
+## ✅ 当前维护的文档项目
 
-作为开源文档翻译维护计划的成果，当前系统性地维护以下中文文档项目：
+作为开源文档翻译维护计划的成果，当前维护以下中文文档项目：
 
-| 文档名称 | 描述 | 链接 |
-|---------|------|------|
-| **LangGraph 中文文档** | LangGraph 框架的中文翻译文档 | [https://woniu9524.github.io/langgraph/](https://woniu9524.github.io/langgraph/) |
-| **LangChain 中文文档** | LangChain 框架的中文翻译文档 | [https://woniu9524.github.io/langchain](https://woniu9524.github.io/langchain) |
-| **Agno 中文文档** | Agno 多代理系统框架的中文翻译文档 | [https://ikun.mintlify.app/introduction](https://ikun.mintlify.app/introduction) |
+| 项目 | 描述 | 中文站点 |
+|---|---|---|
+| LangGraph | 有状态代理的低级编排框架 | [woniu9524.github.io/langgraph](https://woniu9524.github.io/langgraph ) |
+| LangChain | LLM 应用开发框架 | [woniu9524.github.io/langchain](https://woniu9524.github.io/langchain ) |
+| Agno | 多代理系统框架 | [ikun.mintlify.app/introduction](https://ikun.mintlify.app/introduction ) |
 
 ---
 
@@ -48,6 +47,11 @@
 ---
 
 ## 🚀 快速上手
+
+### 📋 操作流程图
+
+![操作流程](resources/flow.png)
+
 
 ### 前期准备：配置你的 Git 环境
 在开始前，请确保你的本地 Git 环境已准备就绪。
@@ -80,11 +84,11 @@
     *   打开 `OpenDocTranslator` 客户端。
     *   点击主界面的 **“添加项目 (Add Project)”** 按钮。
     *   选择您刚刚配置好的本地项目根目录。
+    *   选择正确的远程分支和翻译分支
 
 2.  **配置与翻译**：
     *   从项目下拉框中选择您的项目。
-    *   在 **“设置 (Settings)”** 面板中，配置您的 LLM API Key 和模型参数。
-    *   点击 **“刷新 (Refresh)”** 按钮，工具将自动比对并标记所有文件的翻译状态。
+    *   在 **“设置 (Settings)”** 面板中，配置您的 LLM API Key 和模型参数和一些筛选配置。
     *   点击 **“批量翻译 (Batch Translate)”**，让 AI 完成翻译工作。
 
 3.  **提交与推送**：
@@ -106,7 +110,3 @@
     *   `已翻译 (Up-to-date)`: 状态文件中有记录，且 `source_hash` 与上游完全一致。
 
 ---
-
-## 📄 许可协议
-
-本项目采用 [MIT License](LICENSE) 授权。
