@@ -1,4 +1,6 @@
-# OpenDocTranslator —— 让语言不再成为学习开源项目的壁垒
+# OpenDocTranslator
+
+> 让语言不再成为学习开源项目的壁垒
 
 [![构建状态](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/YOUR_REPO/open-doc-translator)
 [![版本](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/YOUR_REPO/open-doc-translator)
@@ -52,7 +54,7 @@
 ![操作流程](resources/flow.png)
 
 
-### 前期准备：配置你的 Git 环境
+### 前期准备
 在开始前，请确保你的本地 Git 环境已准备就绪。
 
 1.  **Fork 仓库**： 在 GitHub 等平台，Fork 您想翻译的目标项目到自己的账户下。
@@ -77,7 +79,7 @@
     git checkout -b translation-zh # 或其他你喜欢的分支名
     ```
 
-### 开始使用：三步完成翻译
+### 开始使用
 
 1.  **添加项目**：
     *   打开 `OpenDocTranslator` 客户端。
@@ -96,7 +98,7 @@
 
 ---
 
-## ⚙️ 工作原理：基于 Git 的精准追踪
+## ⚙️ 工作原理
 
 本工具的核心是 **基于 Git Blob Hash 的内容状态追踪**。
 
