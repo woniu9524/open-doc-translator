@@ -31,7 +31,7 @@
 | LangGraph | 有状态代理的低级编排框架 | [woniu9524.github.io/langgraph](https://woniu9524.github.io/langgraph ) |
 | LangChain | LLM 应用开发框架 | [woniu9524.github.io/langchain](https://woniu9524.github.io/langchain ) |
 | Agno | 多代理系统框架 | [ikun.mintlify.app/introduction](https://ikun.mintlify.app/introduction ) |
-
+| Supervision | 开源的计算机视觉工具库 | [woniu9524.github.io/supervision-doc/](https://woniu9524.github.io/supervision-doc/)|
 ---
 
 ## ✨ 核心功能
