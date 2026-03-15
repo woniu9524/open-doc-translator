@@ -54,11 +54,13 @@ const api = {
     
     // 事件监听
     on: (channel: string, callback: (...args: any[]) => void) => {
-      ipcRenderer.on(channel, (_, ...args) => callback(...args))
+      const subscription = (_event: any, ...args: any[]) => callback(...args)
+      ipcRenderer.on(channel, subscription)
+      return subscription
     },
     
-    off: (channel: string, callback: (...args: any[]) => void) => {
-      ipcRenderer.off(channel, callback)
+    off: (channel: string, subscription: (...args: any[]) => void) => {
+      ipcRenderer.off(channel, subscription)
     }
   }
 }

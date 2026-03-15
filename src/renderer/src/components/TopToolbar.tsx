@@ -240,10 +240,6 @@ const TopToolbar: FC<TopToolbarProps> = ({
     window.open('https://github.com/woniu9524/open-doc-translator', '_blank')
   }
 
-  const getCurrentProjectName = () => {
-    const project = projects.find(p => p.id === currentProject)
-    return project ? project.name : '未选择项目'
-  }
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">

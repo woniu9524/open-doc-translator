@@ -106,8 +106,10 @@ export class TranslationIPC {
     })
 
     // 翻译功能
-    ipcMain.handle('translation:translateSingleFile', async (_, filePath: string, prompt?: string) => {
-      return await this.translationService.translateSingleFile(filePath, prompt)
+    ipcMain.handle('translation:translateSingleFile', async (event, filePath: string, prompt?: string) => {
+      return await this.translationService.translateSingleFile(filePath, prompt, (chunk) => {
+        event.sender.send('translation:chunk', { filePath, chunk })
+      })
     })
 
     ipcMain.handle('translation:batchTranslateFiles', async (_, filePaths: string[], prompt?: string) => {

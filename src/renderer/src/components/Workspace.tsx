@@ -109,12 +109,25 @@ const Workspace: FC<WorkspaceProps> = ({ selectedFile }) => {
     
     setTranslating(true)
     setError(null)
+    setTranslatedContent('') // 开始翻译时清空内容
+    
+    // 设置流式回调
+    const handleChunk = ({ filePath, chunk }: { filePath: string; chunk: string }) => {
+      if (filePath === selectedFile) {
+        setTranslatedContent(prev => prev + chunk)
+      }
+    }
+    
+    let subscription: any
     
     try {
+      // 监听流式输出
+      subscription = window.api.translation.on('translation:chunk', handleChunk)
+      
       const result = await window.api.translation.translateSingleFile(selectedFile)
       
       if (result.success) {
-        // 重新加载文件内容
+        // 重新加载文件内容以获取最新状态
         await loadFileContent(selectedFile)
         console.log('文件重新翻译成功')
       } else {
@@ -126,6 +139,10 @@ const Workspace: FC<WorkspaceProps> = ({ selectedFile }) => {
       console.error('翻译失败:', err)
     } finally {
       setTranslating(false)
+      // 移除监听
+      if (subscription) {
+        window.api.translation.off('translation:chunk', subscription)
+      }
     }
   }
 

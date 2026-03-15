@@ -175,18 +175,6 @@ const SettingsPanel: FC = () => {
   }
 
   // 测试LLM连接
-  const testLLMConnection = async () => {
-    try {
-      const isConnected = await window.api.translation.testLLMConnection()
-      if (isConnected) {
-        alert('LLM连接测试成功！')
-      } else {
-        alert('LLM连接测试失败，请检查配置。')
-      }
-    } catch (error) {
-      alert('LLM连接测试失败: ' + (error as Error).message)
-    }
-  }
 
   if (isLoading) {
     return (
